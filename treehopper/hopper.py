@@ -2,6 +2,7 @@ import numpy as np
 import itertools
 from scipy.spatial.distance import euclidean
 
+
 class hopper:
     def __init__(self, data, metric=euclidean):
         self.numObs, self.numFeatures = data.shape
