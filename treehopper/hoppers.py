@@ -7,6 +7,7 @@ class hopper:
     def __init__(self, data, metric=euclidean):
         self.numObs, self.numFeatures = data.shape
 
+        self.data = data
         self.path = []
 
         min_dists = [float('Inf')] * self.numObs
@@ -22,11 +23,11 @@ class hopper:
     def hop(self, n_hops=1, store_vcells=True):
         '''generate exact far traversal'''
 
-        sampleSize = min([max_size, self.numObs])
+        sampleSize = min([n_hops, self.numObs])
 
         for _ in itertools.repeat(None, n_hops):
 
-            if len(self.path) == 0):
+            if len(self.path) == 0:
                 print('beginning traversal!')
                 first = np.random.choice(list(range(len(self.avail_inds))))
                 first_ind = self.avail_inds[first]
