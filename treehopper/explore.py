@@ -14,6 +14,7 @@ def compress(adata, hopper, vc_name = 'vcell', wt_name='wt'):
 
     #compute counts in each cell
     counter = Counter(vcells)
+    print(counter)
     wts = [counter[x] for x in path]
 
     result = adata[path,:]
@@ -35,7 +36,7 @@ def expand(smalldata, fulldata, vc_name = 'vcell'):
 
     return(result)
 
-def filter(adata, obs_key, obs_values):
+def subset(adata, obs_key, obs_values):
     obs_vals = list(adata.obs[obs_key])
 
     idx = np.where([x in obs_values for x in obs_vals])[0]
