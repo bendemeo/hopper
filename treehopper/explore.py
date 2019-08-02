@@ -15,7 +15,7 @@ def compress(adata, hopper, vc_name = 'vcell', wt_name='wt'):
     #compute counts in each cell
     counter = Counter(vcells)
     print(counter)
-    wts = [counter[x] for x in path]
+    wts = [counter[x] for x in hopper.path_inds]
 
     result = adata[path,:]
     result.obs[wt_name] = wts

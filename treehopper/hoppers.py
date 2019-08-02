@@ -92,7 +92,7 @@ class hopper:
         return(self.path)
 
     def write(self, filename):
-        data = {'path':self.path, 'vcells':self.vcells}
+        data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds}
         with open(filename, 'wb') as f:
             pickle.dump(data, f)
 
@@ -103,3 +103,4 @@ class hopper:
 
             self.path = hdata['path']
             self.vcells = hdata['vcells']
+            self.path_inds = hdata['path_inds']
