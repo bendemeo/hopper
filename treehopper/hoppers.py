@@ -48,6 +48,10 @@ class hopper:
                 del self.avail_inds[first]
                 del self.min_dists[first]
 
+                print(self.data[self.avail_inds[0],:])
+                print(first_pt)
+                print(len(self.data[self.avail_inds[0],:]))
+                print(len(first_pt))
                 self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
 
                 self.closest = [0]*len(self.avail_inds)
