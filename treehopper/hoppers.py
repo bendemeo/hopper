@@ -69,7 +69,7 @@ class hopper:
                     self.vcells[next_ind]=self.inds[next_ind]
 
 
-                #print(len(self.path))
+                print(len(self.path))
                 del self.avail_inds[next_pos]
                 del self.closest[next_pos]
                 del self.min_dists[next_pos]
