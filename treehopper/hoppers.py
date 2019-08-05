@@ -42,7 +42,7 @@ class hopper:
         for _ in itertools.repeat(None, n_hops):
 
             if len(self.path) == 0:
-                print('beginning traversal!')
+                print('beginning traversal! {} items to traverse'.format(self.numObs))
                 if self.root is None:
                     first = np.random.choice(list(range(len(self.avail_inds))))
                 else:
