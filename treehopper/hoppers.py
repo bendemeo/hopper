@@ -174,6 +174,7 @@ class treehopper:
             if len(h.avail_inds) < 1: #hopper exhausted, can't hop anymore
                 continue
 
+            print('hopping with {} points'.format(h.numObs))
             h.hop() #add furthest point to h, append it to path
             next = h.path_inds[-1]
 
