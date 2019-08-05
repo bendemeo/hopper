@@ -56,7 +56,8 @@ class hopper:
                 del self.avail_inds[first]
                 del self.min_dists[first]
 
-                self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
+                if (self.min_dists[0] == float('inf')):
+                    self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
 
                 self.rs = [max([0]+self.min_dists)]
                 self.r = max(self.rs)
@@ -189,12 +190,17 @@ class treehopper:
                 for vcell in h.vdict.keys():
                     vcelldata = self.data[h.vdict[vcell],:]
 
+                    avail_idx = np.array(h.inds)[h.avail_inds].tolist()
+                    mindists = [0]+[h.min_dists[avail_idx.index(x)] for x in h.vdict[vcell][1:]]
                     #rad = h.rs[h.path_inds.index(vcell)]
 
                     inds = h.vdict[vcell]
                     #print(sorted(inds))
 
                     newhopper = hopper(vcelldata, metric=self.distfunc, inds=inds, root=0)
+
+                    newhopper.min_dists = mindists
+
                     newhopper.hop() #Initializes r, stops sampling the root
                     #print(newhopper.vdict.keys())
                     heappush(self.hheap,newhopper)
