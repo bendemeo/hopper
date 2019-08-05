@@ -191,7 +191,7 @@ class treehopper:
                     vcelldata = self.data[h.vdict[vcell],:]
 
                     avail_idx = np.array(h.inds)[h.avail_inds].tolist()
-                    mindists = [0]+[h.min_dists[avail_idx.index(x)] for x in h.vdict[vcell][1:]]
+                    #mindists = [0]+[h.min_dists[avail_idx.index(x)] for x in h.vdict[vcell][1:]]
                     #rad = h.rs[h.path_inds.index(vcell)]
 
                     inds = h.vdict[vcell]
@@ -199,7 +199,7 @@ class treehopper:
 
                     newhopper = hopper(vcelldata, metric=self.distfunc, inds=inds, root=0)
 
-                    newhopper.min_dists = mindists
+                    #newhopper.min_dists = mindists
 
                     newhopper.hop() #Initializes r, stops sampling the root
                     #print(newhopper.vdict.keys())
