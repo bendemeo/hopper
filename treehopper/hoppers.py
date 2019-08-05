@@ -95,6 +95,10 @@ class hopper:
 
 
                 for pos, ind in enumerate(self.avail_inds):
+                    if self.min_dists[pos] < float(self.r)/2.:
+                        continue
+                        # no need to check; old point is closer
+
                     cur_dist = self.distfunc(self.data[ind,:],next_pt)
                     if cur_dist < self.min_dists[pos]:
                         self.closest[pos] = len(self.path) - 1
@@ -110,7 +114,8 @@ class hopper:
                         self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
 
                 self.r = max(self.rs)
-                print(self.r)
+                print('r values: {}'.format(self.rs))
+                #print(self.r)
 
         return(self.path)
 
@@ -191,6 +196,9 @@ class treehopper:
                     vcelldata = self.data[h.vdict[vcell],:]
 
                     avail_idx = np.array(h.inds)[h.avail_inds].tolist()
+
+
+
                     #mindists = [0]+[h.min_dists[avail_idx.index(x)] for x in h.vdict[vcell][1:]]
                     #rad = h.rs[h.path_inds.index(vcell)]
 
