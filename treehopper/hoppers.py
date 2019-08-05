@@ -226,7 +226,7 @@ class treehopper:
     def write(self, filename):
         if(self.vcells is None):
             self.get_vcells()
-        if self.vdict is none:
+        if self.vdict is None:
             self.get_vdict()
         data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds,
                 'vdict':self.vdict}
