@@ -56,8 +56,7 @@ class hopper:
                 del self.avail_inds[first]
                 del self.min_dists[first]
 
-                if (self.min_dists[0] == float('inf')):
-                    self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
+                self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
 
                 self.rs = [max([0]+self.min_dists)]
                 self.r = max(self.rs)
