@@ -69,7 +69,7 @@ class hopper:
                     self.vdict = {}
                     self.vdict[self.inds[first_ind]] = [self.inds[first_ind]]+[self.inds[x] for x in self.avail_inds]
             else:
-                print(len(self.path))
+                #print(len(self.path))
                 next_pos = self.min_dists.index(max(self.min_dists))
                 next_ind = self.avail_inds[next_pos]
                 next_pt = self.data[next_ind,:]
@@ -161,6 +161,7 @@ class treehopper:
 
 
     def hop(self, n_hops=1, store_vcells=True):
+        print(len(self.path))
         for _ in itertools.repeat(None, n_hops):
             if len(self.hheap) == 0: #start heaping
                 print('heap starting')
