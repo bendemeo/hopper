@@ -161,8 +161,9 @@ class treehopper:
 
 
     def hop(self, n_hops=1, store_vcells=True):
-        print(len(self.path))
+
         for _ in itertools.repeat(None, n_hops):
+            print(len(self.path))
             if len(self.hheap) == 0: #start heaping
                 print('heap starting')
                 heappush(self.hheap, hopper(self.data,self.distfunc, range(self.numObs)))
