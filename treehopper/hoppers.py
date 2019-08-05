@@ -208,6 +208,8 @@ class treehopper:
         result = {}
         for h in self.hheap:
             result.update(h.vdict)
+
+        self.vdict = result
         return(result)
 
     def get_vcells(self):
@@ -217,5 +219,28 @@ class treehopper:
             for v in d[k]:
                 result[v] = k
         #print(self.get_vdict().keys())
+        self.vcells = result
 
         return(result)
+
+    def write(self, filename):
+        if(self.vcells is None):
+            self.get_vcells()
+        if self.vdict is none:
+            self.get_vdict()
+        data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds,
+                'vdict':self.vdict}
+        with open(filename, 'wb') as f:
+            pickle.dump(data, f)
+
+    def read(self, filename):
+        '''load hopData file and store into its values'''
+        with open(filename, 'rb') as f:
+            hdata = pickle.load(f)
+
+            self.path = hdata['path']
+            self.path_inds = hdata['path_inds']
+            if 'vdict' in hdata:
+                self.vdict = hdata['vdict']
+            if 'vcells' in hdata:
+                self.vcells = hdata['vcells']
