@@ -141,6 +141,8 @@ class hopper:
                 check_pos = list(itertools.compress(range(len(self.avail_inds)),check))
                 check_inds = np.array(self.avail_inds)[check_pos]
 
+                print('{} indices to check'.format(len(check_inds)))
+
                 #compute distances
                 dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
                 dists = np.array(dists)
