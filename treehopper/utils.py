@@ -8,6 +8,7 @@ def haus(data, sample):
 
 
 def haus_curve(data, ordering, distfunc=euclidean, max_len=5000):
+    print('starting')
     result = []
     cur_haus = float('Inf')
     min_dists = float('Inf')*data.shape[0]
