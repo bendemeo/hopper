@@ -1,7 +1,7 @@
 from sklearn.metrics import pairwise_distances
 from scipy.spatial.distance import euclidean
 import numpy as np
-
+]
 def haus(data, sample):
     dist = pairwise_distances(data[sample, :], data, n_jobs=-1)
     return(dist.min(0).max())
@@ -12,6 +12,7 @@ def haus_curve(data, ordering, distfunc=euclidean, max_len=5000):
     cur_haus = float('Inf')
     min_dists = float('Inf')*data.shape[0]
     for i in range(len(ordering)):
+        print(i)
         if i > max_len:
             break
         new = data[ordering[i],:]
