@@ -169,16 +169,29 @@ class hopper:
                 new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
                 new_dists = np.array(new_dists)
 
-                for i,tuple in enumerate(check_list):
-                    new = new_dists[i]
-                    prev = prev_dists[i]
-                    idx = tuple[1]
-                    if new < prev:
-                        heappush(self.min_dists, (-1*new, idx))
-                        self.vcells[idx] = self.inds[next_ind]
+                ischanged = (new_dists < prev_dists)
+                changed = list(itertools.compress(range(len(ischanged)),ischanged))
+                unchanged = list(itertools.compress(range(len(ischanged)),1-np.array(ischanged)))
 
-                    else: #no change; put it back
-                        heappush(self.min_dists, tuple)
+                for i in changed:
+                    new = new_dists[i]
+                    idx = check_list[i][1]
+                    heappush(self.min_dists, (-1*new, idx))
+                    self.vcells[idx] = self.inds[next_ind]
+                for i in unchanged:
+                    heappush(self.min_dists, check_list[i])
+
+                #
+                # for i,tuple in enumerate(check_list):
+                #     new = new_dists[i]
+                #     prev = prev_dists[i]
+                #     idx = tuple[1]
+                #     if new < prev:
+                #         heappush(self.min_dists, (-1*new, idx))
+                #         self.vcells[idx] = self.inds[next_ind]
+                #
+                #     else: #no change; put it back
+                #         heappush(self.min_dists, tuple)
 
                 self.r = -1*self.min_dists[0][0]
 
