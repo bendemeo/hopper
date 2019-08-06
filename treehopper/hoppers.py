@@ -98,28 +98,40 @@ class hopper:
                 del self.avail_inds[first]
                 del self.min_dists[first]
 
-                self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
+                #keep a heap of minimum distances
+                self.min_dists = []
+                for pos,ind in enumerate(self.avail_inds):
+                    dist = self.distfunc(self.data[ind,:],first_pt)
+                    heappush(self.min_dists, (-1*dist, ind))
 
-                self.max_pos = self.min_dists.index(max(self.min_dists))
-                self.r = self.min_dists[self.max_pos]
+                #
+                #
+                #     heappush(self.min_dists, )
+                # self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
+                self.r = -1*self.min_dists[0][0]
+
+
+                #self.max_pos = self.min_dists.index(max(self.min_dists))
+                #self.r = self.min_dists[self.max_pos]
 
                 self.closest = [0]*len(self.avail_inds)
                 # self.ptrs = [0]
 
                 if store_vcells:
                     self.vcells = [self.inds[first_ind]] * self.numObs
-                    self.vdict = {}
-                    self.vdict[self.inds[first_ind]] = [self.inds[first_ind]]+[self.inds[x] for x in self.avail_inds]
+                    # self.vdict = {}
+                    # self.vdict[self.inds[first_ind]] = [self.inds[first_ind]]+[self.inds[x] for x in self.avail_inds]
             else:
 
                 #print(len(self.path))
-                next_pos = self.max_pos
-                next_ind = self.avail_inds[next_pos]
+                next_ind = heappop(self.min_dists)[1]
+                #next_ind = self.avail_inds[next_pos]
                 next_pt = self.data[next_ind,:].reshape((1,self.numFeatures))
 
                 self.path.append(next_ind)
                 self.path_inds.append(self.inds[next_ind])
                 # self.ptrs.append(self.closest[next_pos])
+
 
                 if store_vcells:
                     #initialize voronoi cell with self
@@ -127,48 +139,83 @@ class hopper:
                     self.vcells[next_ind]=self.inds[next_ind]
                     #self.vdict = {self.path_inds[x]:[self.path_inds[x]] for x in range(len(self.path))}
 
-                #reset rs to acommodate new point!!
-                self.rs = [0]*len(self.path)
+                # #reset rs to acommodate new point!!
+                # self.rs = [0]*len(self.path)
 
-                #print(len(self.path))
-                del self.avail_inds[next_pos]
-                del self.closest[next_pos]
-                del self.min_dists[next_pos]
+                # #print(len(self.path))
+                # del self.avail_inds[next_pos]
+                # del self.closest[next_pos]
+                # del self.min_dists[next_pos]
 
+                #find places where dists MAY be changed
+                check_inds = [] # what indices to check
+                check_list = [] # list of heap elements to check
+                prev_dists = [] # prior distances
 
-                #places where dists MAY be changed
-                check = np.array(self.min_dists) > float(self.r)/2
-                check_pos = list(itertools.compress(range(len(self.avail_inds)),check))
-                check_inds = np.array(self.avail_inds)[check_pos]
+                r = float('inf')
+                while r > self.r/2.:
+                    curtuple = heappop(self.min_dists)
+                    check_inds.append(curtuple[1])
+                    check_list.append(curtuple)
+                    prev_dists.append(-1*curtuple[0])
+                    r = -1*curtuple[0]
 
-                print('{} indices to check'.format(len(check_inds)))
+                heappush(self.min_dists, curtuple)
 
-                #compute distances
-                dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
-                dists = np.array(dists)
-
-                #find places where distance WILL be changed
-                prev_dists = np.array(self.min_dists)[check_pos]
-                change = (dists < prev_dists)
-
-                change_pos = list(itertools.compress(range(len(check_pos)),change))
-                change_inds = np.array(check_pos)[change_pos]
-
-                #update minimum distances and vcells, if applicable
-                for i, idx in enumerate(change_pos):
-                    #print(self.min_dists[idx])
-                    self.min_dists[change_inds[i]] = dists[idx]
-                    self.closest[change_inds[i]] = len(self.path) - 1
-                    # self.r = max(self.r, )
-                    # self.rs[len(self.path)-1] = max(self.rs[len(self.path)-1],
-                    #                                 self.min_dists[idx])
-                    if store_vcells:
-                        self.vcells[check_inds[change_pos[i]]] = self.inds[next_ind]
+                print('checking {} points'.format(len(check_list)))
 
 
-                #This line may be a bit slow -- consider sorting min_dists?
-                self.max_pos = self.min_dists.index(max(self.min_dists))
-                self.r = self.min_dists[self.max_pos]
+                #compute pairwise distances
+                new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
+                new_dists = np.array(new_dists)
+
+                for i,tuple in enumerate(check_list):
+                    new = new_dists[i]
+                    prev = prev_dists[i]
+                    idx = tuple[1]
+                    if new < prev:
+                        heappush(self.min_dists, (-1*new, idx))
+                        self.vcells[idx] = self.inds[next_ind]
+
+                    else: #no change; put it back
+                        heappush(self.min_dists, tuple)
+
+                self.r = -1*self.min_dists[0][0]
+
+
+                # #places where dists MAY be changed
+                # check = np.array(self.min_dists) > float(self.r)/2
+                # check_pos = list(itertools.compress(range(len(self.avail_inds)),check))
+                # check_inds = np.array(self.avail_inds)[check_pos]
+                #
+                # print('{} indices to check'.format(len(check_inds)))
+                #
+                # #compute distances
+                # dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
+                # dists = np.array(dists)
+                #
+                # #find places where distance WILL be changed
+                # prev_dists = np.array(self.min_dists)[check_pos]
+                # change = (dists < prev_dists)
+                #
+                # change_pos = list(itertools.compress(range(len(check_pos)),change))
+                # change_inds = np.array(check_pos)[change_pos]
+                #
+                # #update minimum distances and vcells, if applicable
+                # for i, idx in enumerate(change_pos):
+                #     #print(self.min_dists[idx])
+                #     self.min_dists[change_inds[i]] = dists[idx]
+                #     self.closest[change_inds[i]] = len(self.path) - 1
+                #     # self.r = max(self.r, )
+                #     # self.rs[len(self.path)-1] = max(self.rs[len(self.path)-1],
+                #     #                                 self.min_dists[idx])
+                #     if store_vcells:
+                #         self.vcells[check_inds[change_pos[i]]] = self.inds[next_ind]
+                #
+                #
+                # #This line may be a bit slow -- consider sorting min_dists?
+                # self.max_pos = self.min_dists.index(max(self.min_dists))
+                # self.r = self.min_dists[self.max_pos]
 
                 # #TODO speed up with sklearn.metrics.pairwise_distances (I did it! Hence this is commented)
                 # for pos, ind in enumerate(self.avail_inds):
