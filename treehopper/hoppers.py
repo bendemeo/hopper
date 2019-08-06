@@ -3,6 +3,7 @@ import itertools
 from functools import total_ordering
 from scipy.spatial.distance import euclidean
 from heapq import heappush, heappop, heapify, heapreplace
+from sklearn.metrics import pairwise_distances
 import pickle
 
 
@@ -99,8 +100,8 @@ class hopper:
 
                 self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
 
-                self.rs = [max([0]+self.min_dists)]
-                self.r = max(self.rs)
+                self.max_pos = self.min_dists.index(max(self.min_dists))
+                self.r = self.min_dists[self.max_pos]
 
                 self.closest = [0]*len(self.avail_inds)
                 # self.ptrs = [0]
@@ -110,8 +111,9 @@ class hopper:
                     self.vdict = {}
                     self.vdict[self.inds[first_ind]] = [self.inds[first_ind]]+[self.inds[x] for x in self.avail_inds]
             else:
+
                 #print(len(self.path))
-                next_pos = self.min_dists.index(max(self.min_dists))
+                next_pos = self.max_pos
                 next_ind = self.avail_inds[next_pos]
                 next_pt = self.data[next_ind,:]
 
@@ -123,8 +125,7 @@ class hopper:
                     #initialize voronoi cell with self
                     #prepare to rebuild voronoi dictionary
                     self.vcells[next_ind]=self.inds[next_ind]
-                    self.vdict = {self.path_inds[x]:[self.path_inds[x]] for x in range(len(self.path))}
-
+                    #self.vdict = {self.path_inds[x]:[self.path_inds[x]] for x in range(len(self.path))}
 
                 #reset rs to acommodate new point!!
                 self.rs = [0]*len(self.path)
@@ -135,34 +136,77 @@ class hopper:
                 del self.min_dists[next_pos]
 
 
-                for pos, ind in enumerate(self.avail_inds):
+                #places where dists MAY be changed
+                check = np.array(self.min_dists) > float(self.r)/2
+                check_pos = list(itertools.compress(range(len(self.avail_inds)),check))
+                check_inds = np.array(self.avail_inds)[check_pos]
 
-                    if self.min_dists[pos] < float(self.r)/2.:
-                        if store_vcells:
-                            self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
-                        continue
-                        # no need to check; old point is closer
+                #compute distances
+                dists = pairwise_distances(np.array(next_pt).reshape((1,len(next_pt))), self.data[check_inds,:])[0,:]
+                dists = np.array(dists)
 
-                    cur_dist = self.distfunc(self.data[ind,:],next_pt)
-                    if cur_dist < self.min_dists[pos]:
-                        self.closest[pos] = len(self.path) - 1
-                        self.min_dists[pos] = cur_dist
+                #find places where distance WILL be changed
+                prev_dists = np.array(self.min_dists)[check_pos]
+                change = (dists < prev_dists)
 
-                        if store_vcells: #todo make this work only once
-                            #update voronoi cell with self
-                            self.vcells[ind] = self.inds[next_ind]
+                change_pos = list(itertools.compress(range(len(check_pos)),change))
+                change_inds = np.array(check_pos)[change_pos]
 
-                    #update rs
-                    self.rs[self.closest[pos]] = max(self.rs[self.closest[pos]], self.min_dists[pos])
-
+                #update minimum distances and vcells, if applicable
+                for i, idx in enumerate(change_pos):
+                    #print(self.min_dists[idx])
+                    self.min_dists[change_inds[i]] = dists[idx]
+                    self.closest[change_inds[i]] = len(self.path) - 1
+                    # self.r = max(self.r, )
+                    # self.rs[len(self.path)-1] = max(self.rs[len(self.path)-1],
+                    #                                 self.min_dists[idx])
                     if store_vcells:
-                        self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
+                        self.vcells[check_inds[change_pos[i]]] = self.inds[next_ind]
 
-                self.r = max(self.rs)
-                print('r values: {}'.format(self.rs))
+
+                #This line may be a bit slow -- consider sorting min_dists?
+                self.max_pos = self.min_dists.index(max(self.min_dists))
+                self.r = self.min_dists[self.max_pos]
+
+                # #TODO speed up with sklearn.metrics.pairwise_distances (I did it! Hence this is commented)
+                # for pos, ind in enumerate(self.avail_inds):
+                #
+                #     if self.min_dists[pos] < float(self.r)/2.:
+                #         if store_vcells:
+                #             self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
+                #         continue
+                #         # no need to check; old point is closer
+                #
+                #     cur_dist = self.distfunc(self.data[ind,:],next_pt)
+                #     if cur_dist < self.min_dists[pos]:
+                #         self.closest[pos] = len(self.path) - 1
+                #         self.min_dists[pos] = cur_dist
+                #
+                #         if store_vcells: #todo make this work only once
+                #             #update voronoi cell with self
+                #             self.vcells[ind] = self.inds[next_ind]
+                #
+                #     #update rs
+                #     self.rs[self.closest[pos]] = max(self.rs[self.closest[pos]], self.min_dists[pos])
+                #
+                #     if store_vcells:
+                #         self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
+                #
+                # self.r = max(self.rs)
+                # print('r values: {}'.format(self.rs))
                 #print(self.r)
 
         return(self.path)
+
+    def get_vdict(self):
+        #compute dictionary from cell ids
+        result = {}
+        for i,c in enumerate(self.vcells):
+            if c not in result:
+                result[c] = [self.inds[i]]
+            else:
+                result[c].append(self.inds[i])
+        return(result)
 
     def __lt__(self, other):
         return self.r > other.r
@@ -281,7 +325,7 @@ class treehopper:
     def get_vdict(self):
         result = {}
         for h in self.hheap:
-            result.update(h.vdict)
+            result.update(h.get_vdict())
 
         self.vdict = result
         return(result)

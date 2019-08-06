@@ -1,7 +1,6 @@
 from sklearn.metrics import pairwise_distances
 from scipy.spatial.distance import euclidean
 import numpy as np
-]
 def haus(data, sample):
     dist = pairwise_distances(data[sample, :], data, n_jobs=-1)
     return(dist.min(0).max())
