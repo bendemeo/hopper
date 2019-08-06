@@ -115,7 +115,7 @@ class hopper:
                 #print(len(self.path))
                 next_pos = self.max_pos
                 next_ind = self.avail_inds[next_pos]
-                next_pt = self.data[next_ind,:]
+                next_pt = self.data[next_ind,:].reshape((1,self.numFeatures))
 
                 self.path.append(next_ind)
                 self.path_inds.append(self.inds[next_ind])
@@ -142,7 +142,7 @@ class hopper:
                 check_inds = np.array(self.avail_inds)[check_pos]
 
                 #compute distances
-                dists = pairwise_distances(np.array(next_pt).reshape((1,len(next_pt))), self.data[check_inds,:])[0,:]
+                dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
                 dists = np.array(dists)
 
                 #find places where distance WILL be changed
