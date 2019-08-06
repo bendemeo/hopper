@@ -5,6 +5,47 @@ from scipy.spatial.distance import euclidean
 from heapq import heappush, heappop, heapify, heapreplace
 import pickle
 
+
+
+def RPartition(data, max_partition_size=1000, inds=None):
+    '''Median-partition along dimensions until each partition is small'''
+    partitions = []
+    if inds is None:
+        inds = list(range(data.shape[0]))
+
+    #initialize to trivial partition
+    #tuple of (-size, next partitioning dimension, rows in partition)
+    heappush(partitions, (-1*data.shape[0], 0, list(range(data.shape[0]))))
+
+    current_partition = heappop(partitions)
+    while(len(current_partition[2]) > max_partition_size):
+        dim = current_partition[1]
+        rows = current_partition[2]
+        vals = data[rows, dim].tolist()
+
+        mid = np.median(vals)
+        split = vals > mid
+
+        p1 = list(itertools.compress(rows, split))
+        p2 = list(itertools.compress(rows, 1-split))
+
+
+        newdim = (dim + 1) % data.shape[1] #cycle dimensions
+
+        heappush(partitions, (-1*len(p1), newdim, p1))
+        heappush(partitions, (-1*len(p2), newdim, p2))
+
+        current_partition = heappop(partitions)
+
+    heappush(partitions, current_partition)
+    return([x[2] for x in partitions])
+
+
+
+
+
+
+
 @total_ordering
 class hopper:
     def __init__(self, data, metric=euclidean, inds=None, start_r=float('inf'), root=None):
@@ -95,7 +136,10 @@ class hopper:
 
 
                 for pos, ind in enumerate(self.avail_inds):
+
                     if self.min_dists[pos] < float(self.r)/2.:
+                        if store_vcells:
+                            self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
                         continue
                         # no need to check; old point is closer
 
@@ -110,6 +154,7 @@ class hopper:
 
                     #update rs
                     self.rs[self.closest[pos]] = max(self.rs[self.closest[pos]], self.min_dists[pos])
+
                     if store_vcells:
                         self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
 
@@ -140,7 +185,10 @@ class hopper:
             self.path_inds = hdata['path_inds']
 
 class treehopper:
-    def __init__(self, data, splits=2, metric=euclidean, inds=None):
+    def __init__(self, data, splits=2, metric=euclidean, inds=None,
+                 pre_partition = False,
+                 max_partition_size=1000):
+
         self.data = data
         self.numObs, self.numFeatures = data.shape
 
@@ -163,6 +211,23 @@ class treehopper:
         self.vdict=None
         self.hheap = []
         self.splits = splits
+
+        if pre_partition:
+            '''use RP-partition to split data beforehand'''
+            print('Pre-partitioning...')
+            P = RPartition(data, max_partition_size, inds)
+            for rows in P:
+                h = hopper(data[rows,:], metric, rows)
+                h.hop() #hop once to set root
+                next = h.path_inds[-1]
+                self.path.append(next)
+                self.path_inds.append(inds[next])
+                heappush(self.hheap, h)
+            print('Pre-partitioning done, added {} points'.format(len(self.path)))
+
+
+
+
 
 
     def hop(self, n_hops=1, store_vcells=True):
