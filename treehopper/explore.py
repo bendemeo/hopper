@@ -25,7 +25,8 @@ def compress(adata, hopper, vc_name = 'vcell', wt_name='wt'):
 
 
 def expand(smalldata, fulldata, vc_name = 'vcell'):
-    '''given a small dataset with compression info, expand to full points'''
+    '''given a small dataset with compression info, expand to full points,
+    keeping all observation data (e.g. clusters)'''
 
     smallcells = list(smalldata.obs[vc_name])
     fullcells = list(fulldata.obs[vc_name])

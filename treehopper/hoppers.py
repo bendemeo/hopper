@@ -5,6 +5,7 @@ from scipy.spatial.distance import euclidean
 from heapq import heappush, heappop, heapify, heapreplace
 from sklearn.metrics import pairwise_distances
 import pickle
+from time import time
 
 
 
@@ -51,9 +52,11 @@ def RPartition(data, max_partition_size=1000, inds=None):
 class hopper:
     def __init__(self, data, metric=euclidean, inds=None, start_r=float('inf'), root=None):
 
+        t0 = time()
+        self.times = [] # store runtimes after each hop
 
         self.r = start_r #current Haus distance
-        self.rs = [] # distances from each sampled point to furthest non-sampled point in voronoi cell
+        self.rs = [] # keep track of haus after each time point
         self.numObs, self.numFeatures = data.shape
 
         if inds is None:
@@ -64,8 +67,7 @@ class hopper:
         self.path = []
         self.path_inds = []
 
-        min_dists = [float('Inf')] * self.numObs
-        self.min_dists = min_dists
+        self.min_dists = []
 
         avail_inds = list(range(self.numObs))
         self.avail_inds = avail_inds
@@ -74,78 +76,55 @@ class hopper:
         self.vcells=None
         self.vdict=None
         self.root = root
+        self.init_time = time()-t0
+        self.times.append(self.init_time)
 
 
     def hop(self, n_hops=1, store_vcells=True):
         '''generate exact far traversal'''
 
-        sampleSize = min([n_hops, self.numObs])
-
         for _ in itertools.repeat(None, n_hops):
-
+            t0 = time()
+            print('beginning traversal! {} items to traverse'.format(self.numObs))
             if len(self.path) == 0:
-                print('beginning traversal! {} items to traverse'.format(self.numObs))
+                #set starting point, initialize dist heap
+
                 if self.root is None:
-                    first = np.random.choice(list(range(len(self.avail_inds))))
+                    first = np.random.choice(list(range(self.numObs)))
                 else:
                     first = self.root
-                first_ind = self.avail_inds[first]
-                first_pt = self.data[first_ind,:]
 
 
-                self.path.append(first_ind)
-                self.path_inds.append(self.inds[first_ind])
-                del self.avail_inds[first]
-                del self.min_dists[first]
-
-                #keep a heap of minimum distances
-                self.min_dists = []
-                for pos,ind in enumerate(self.avail_inds):
-                    dist = self.distfunc(self.data[ind,:],first_pt)
-                    heappush(self.min_dists, (-1*dist, ind))
-
-                #
-                #
-                #     heappush(self.min_dists, )
-                # self.min_dists = [min(self.min_dists[pos], self.distfunc(self.data[ind,:],first_pt)) for pos, ind in enumerate(self.avail_inds)]
-                self.r = -1*self.min_dists[0][0]
+                self.path.append(first)
+                self.path_inds.append(self.inds[first])
 
 
-                #self.max_pos = self.min_dists.index(max(self.min_dists))
-                #self.r = self.min_dists[self.max_pos]
+                first_pt = self.data[first,:].reshape((1,self.numFeatures))
 
-                self.closest = [0]*len(self.avail_inds)
-                # self.ptrs = [0]
+                start_dists = pairwise_distances(first_pt, self.data, metric=self.distfunc)[0,:]
+                start_dists = np.array(start_dists)
+
+                for ind in range(self.numObs):
+                    if ind != first:
+                        heappush(self.min_dists, (-1*start_dists[ind], ind))
+
 
                 if store_vcells:
-                    self.vcells = [self.inds[first_ind]] * self.numObs
-                    # self.vdict = {}
-                    # self.vdict[self.inds[first_ind]] = [self.inds[first_ind]]+[self.inds[x] for x in self.avail_inds]
-            else:
+                    self.vcells = [self.inds[first]] * self.numObs
 
-                #print(len(self.path))
+            else:
+                if len(self.min_dists) < 1:
+                    print('hopper exhausted!')
+                    break
+
                 next_ind = heappop(self.min_dists)[1]
-                #next_ind = self.avail_inds[next_pos]
                 next_pt = self.data[next_ind,:].reshape((1,self.numFeatures))
 
                 self.path.append(next_ind)
                 self.path_inds.append(self.inds[next_ind])
-                # self.ptrs.append(self.closest[next_pos])
-
-
                 if store_vcells:
-                    #initialize voronoi cell with self
-                    #prepare to rebuild voronoi dictionary
                     self.vcells[next_ind]=self.inds[next_ind]
-                    #self.vdict = {self.path_inds[x]:[self.path_inds[x]] for x in range(len(self.path))}
 
-                # #reset rs to acommodate new point!!
-                # self.rs = [0]*len(self.path)
-
-                # #print(len(self.path))
-                # del self.avail_inds[next_pos]
-                # del self.closest[next_pos]
-                # del self.min_dists[next_pos]
 
                 #find places where dists MAY be changed
                 check_inds = [] # what indices to check
@@ -153,33 +132,46 @@ class hopper:
                 prev_dists = [] # prior distances
 
                 r = float('inf')
-                while r > self.r/2.:
-                    curtuple = heappop(self.min_dists)
-                    check_inds.append(curtuple[1])
-                    check_list.append(curtuple)
-                    prev_dists.append(-1*curtuple[0])
-                    r = -1*curtuple[0]
 
-                heappush(self.min_dists, curtuple)
+                if len(self.min_dists) > 0:
+                    while r > self.r/2 and len(self.min_dists) > 0:
+                        curtuple = heappop(self.min_dists)
+                        check_inds.append(curtuple[1])
+                        check_list.append(curtuple)
+                        prev_dists.append(-1*curtuple[0])
+                        r = -1*curtuple[0]
 
-                print('checking {} points'.format(len(check_list)))
+                    heappush(self.min_dists, curtuple)
+
+                    print('checking {} points'.format(len(check_list)))
+
+                    #compute pairwise distances
+                    new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
+                    new_dists = np.array(new_dists)
+
+                    #filter by changed vs. unchanged. Faster than looping
+                    ischanged = (new_dists < prev_dists)
+                    changed = list(itertools.compress(range(len(ischanged)),ischanged))
+                    unchanged = list(itertools.compress(range(len(ischanged)),1-np.array(ischanged)))
+
+                    for i in changed:
+                        new = new_dists[i]
+                        idx = check_list[i][1]
+                        heappush(self.min_dists, (-1*new, idx))
+                        self.vcells[idx] = self.inds[next_ind]
+                    for i in unchanged:
+                        heappush(self.min_dists, check_list[i])
+                else:
+                    print('hopper exhausted!')
 
 
-                #compute pairwise distances
-                new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
-                new_dists = np.array(new_dists)
-
-                ischanged = (new_dists < prev_dists)
-                changed = list(itertools.compress(range(len(ischanged)),ischanged))
-                unchanged = list(itertools.compress(range(len(ischanged)),1-np.array(ischanged)))
-
-                for i in changed:
-                    new = new_dists[i]
-                    idx = check_list[i][1]
-                    heappush(self.min_dists, (-1*new, idx))
-                    self.vcells[idx] = self.inds[next_ind]
-                for i in unchanged:
-                    heappush(self.min_dists, check_list[i])
+            #store Hausdorff and time information
+            if len(self.min_dists) < 1:
+                self.r = 0
+            else:
+                self.r = -1*self.min_dists[0][0]
+            self.rs.append(self.r)
+            self.times.append(self.times[-1]+time()-t0)
 
                 #
                 # for i,tuple in enumerate(check_list):
@@ -192,9 +184,6 @@ class hopper:
                 #
                 #     else: #no change; put it back
                 #         heappush(self.min_dists, tuple)
-
-                self.r = -1*self.min_dists[0][0]
-
 
                 # #places where dists MAY be changed
                 # check = np.array(self.min_dists) > float(self.r)/2
@@ -268,6 +257,7 @@ class hopper:
                 result[c] = [self.inds[i]]
             else:
                 result[c].append(self.inds[i])
+        self.vdict = result
         return(result)
 
     def __lt__(self, other):
@@ -295,9 +285,13 @@ class treehopper:
                  pre_partition = False,
                  max_partition_size=1000):
 
+        t0 = time()
+        self.times = []
         self.data = data
         self.numObs, self.numFeatures = data.shape
 
+        self.r = float('inf')
+        self.rs = [] #only upper-bounds the true Hausdorff, if using pre-partitions
         if inds is None:
             inds = range(self.numObs)
 
@@ -331,58 +325,66 @@ class treehopper:
                 heappush(self.hheap, h)
             print('Pre-partitioning done, added {} points'.format(len(self.path)))
 
-
-
-
-
+        self.init_time = time()-t0
+        self.times = [self.init_time]
 
     def hop(self, n_hops=1, store_vcells=True):
-
         for _ in itertools.repeat(None, n_hops):
+            t0 = time()
             print(len(self.path))
             if len(self.hheap) == 0: #start heaping
                 print('heap starting')
                 heappush(self.hheap, hopper(self.data,self.distfunc, range(self.numObs)))
 
             h = heappop(self.hheap)
+            print('hopping with {} points'.format(h.numObs))
             print('radius {}'.format(h.r))
 
-            if len(h.avail_inds) < 1: #hopper exhausted, can't hop anymore
-                continue
+            self.r = h.r
+            self.rs.append(self.r)
+            h.hop() #initialize stuff, or hop again
 
-            print('hopping with {} points'.format(h.numObs))
-            h.hop() #add furthest point to h, append it to path
+
             next = h.path_inds[-1]
 
             self.path.append(next)
             self.path_inds.append(self.inds[next])
 
-            if len(h.path) < self.splits:
-                heappush(self.hheap, h)
+            if len(h.min_dists) > 0:
+                if len(h.path) < self.splits:
+                    heappush(self.hheap,h)
+
+                else:
+                    print('splitting')
+                    #split into sub-hoppers
+                    h.get_vdict()
+                    for vcell in h.vdict.keys():
+                        vcelldata = self.data[h.vdict[vcell],:]
+
+                        avail_idx = np.array(h.inds)[h.avail_inds].tolist()
+
+
+
+                        #mindists = [0]+[h.min_dists[avail_idx.index(x)] for x in h.vdict[vcell][1:]]
+                        #rad = h.rs[h.path_inds.index(vcell)]
+
+                        inds = h.vdict[vcell]
+                        #print(sorted(inds))
+
+                        newhopper = hopper(vcelldata, metric=self.distfunc, inds=inds, root=0)
+
+                        #newhopper.min_dists = mindists
+
+
+                        newhopper.hop() #Initializes r, stops sampling the root
+                        #print(newhopper.vdict.keys())
+
+                        if len(newhopper.min_dists) > 0: #make sure not exhausted
+                            heappush(self.hheap,newhopper)
             else:
-                print('splitting')
-                #split into sub-hoppers
+                print('hopper exhausted!')
 
-                for vcell in h.vdict.keys():
-                    vcelldata = self.data[h.vdict[vcell],:]
-
-                    avail_idx = np.array(h.inds)[h.avail_inds].tolist()
-
-
-
-                    #mindists = [0]+[h.min_dists[avail_idx.index(x)] for x in h.vdict[vcell][1:]]
-                    #rad = h.rs[h.path_inds.index(vcell)]
-
-                    inds = h.vdict[vcell]
-                    #print(sorted(inds))
-
-                    newhopper = hopper(vcelldata, metric=self.distfunc, inds=inds, root=0)
-
-                    #newhopper.min_dists = mindists
-
-                    newhopper.hop() #Initializes r, stops sampling the root
-                    #print(newhopper.vdict.keys())
-                    heappush(self.hheap,newhopper)
+            self.times.append(self.times[-1]+time()-t0)
 
     def get_vdict(self):
         result = {}
