@@ -267,9 +267,10 @@ class hopper:
         return self.r < other.r
 
     def write(self, filename):
-        #data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds}
+        data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds,
+                'times':self.times,'rs':self.rs}
         with open(filename, 'wb') as f:
-            pickle.dump(self, f)
+            pickle.dump(data, f)
 
     def read(self, filename):
         '''load hopData file and store into its values'''
@@ -279,6 +280,8 @@ class hopper:
             self.path = hdata['path']
             self.vcells = hdata['vcells']
             self.path_inds = hdata['path_inds']
+            self.times = hdata['times']
+            self.rs = hdata['rs']
 
 class treehopper:
     def __init__(self, data, splits=2, metric=euclidean, inds=None,
@@ -410,10 +413,10 @@ class treehopper:
             self.get_vcells()
         if self.vdict is None:
             self.get_vdict()
-        # data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds,
-        #         'vdict':self.vdict}
+        data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds,
+                'vdict':self.vdict, 'times': self.times, 'rs': self.rs}
         with open(filename, 'wb') as f:
-            pickle.dump(self, f)
+            pickle.dump(data, f)
 
     def read(self, filename):
         '''load hopData file and store into its values'''
@@ -426,3 +429,5 @@ class treehopper:
                 self.vdict = hdata['vdict']
             if 'vcells' in hdata:
                 self.vcells = hdata['vcells']
+            self.times = hdata['times']
+            self.rs = hdata['rs']
