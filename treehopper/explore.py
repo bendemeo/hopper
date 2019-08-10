@@ -44,3 +44,16 @@ def subset(adata, obs_key, obs_values):
     idx = np.where([x in obs_values for x in obs_vals])[0]
 
     return(adata[idx,:])
+
+
+def viz(adata, rep = 'X_ica',louvain=True, **kwargs):
+    if 'neighbors' not in adata.uns:
+        sc.pp.neighbors(adata, use_rep=rep)
+
+    if 'X_umap' not in adata.obsm:
+        sc.tl.umap(adata)
+
+    if 'louvain' not in adata.obs:
+        sc.tl.louvain(adata)
+
+    sc.pl.umap(adata, **kwargs)
