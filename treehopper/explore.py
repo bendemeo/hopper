@@ -33,11 +33,6 @@ def expand(smalldata, fulldata, vc_name = 'vcell'):
     print(smallcells)
     print(fullcells)
 
-    for x in fullcells:
-        if x in smallcells:
-            idx = smallcells.index(x):
-
-
     idx = np.where([x in smallcells for x in fullcells])[0]
 
     result = fulldata[idx,:]
