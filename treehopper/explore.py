@@ -54,11 +54,12 @@ def expand_clusterings(smalldata, fulldata, cluster_name='louvain', clusters = N
 
     fulldata.obs[cluster_name]=[None]*fulldata.obs.shape[0]
 
-    for i,cell in list(smalldata.obs[vc_name]):
-        inds = np.where(y==x for y in list(fulldata.obs[vc_name]))
-        print(inds)
-        for i in inds:
-            fulldata.obs[cluster_name][i]=smalldata.obs[cluster_name][i]
+    for i, cell in enumerate(list(smalldata.obs[vc_name])):
+        print(i)
+        # print(cell)
+        inds = np.where([y==cell for y in list(fulldata.obs[vc_name])])[0]
+        # print(inds)
+        fulldata.obs[cluster_name].iloc[inds]=len(inds)*list(smalldata.obs[cluster_name].iloc[i])
 
     return(fulldata)
 
