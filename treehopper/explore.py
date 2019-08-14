@@ -36,16 +36,16 @@ def expand(smalldata, fulldata, vc_name = 'vcell'):
     idx = np.where([x in smallcells for x in fullcells])[0]
 
     result = fulldata[idx,:]
-    for o in smalldata.obs.columns:
-        result.obs[o] = [None]*len(idx)
-
-
-    for i,x in enumerate(smallcells):
-        print(i)
-        inds = np.where([y==x for y in fullcells])
-        for o in smalldata.obs.columns:
-            print(o)
-            result.obs[o].iloc[inds] = list(smalldata.obs[o].iloc[[i]])*len(inds)
+    # for o in smalldata.obs.columns:
+    #     result.obs[o] = [None]*len(idx)
+    #
+    #
+    # for i,x in enumerate(smallcells):
+    #     print(i)
+    #     inds = np.where([y==x for y in fullcells])
+    #     for o in smalldata.obs.columns:
+    #         print(o)
+    #         result.obs[o].iloc[inds] = list(smalldata.obs[o].iloc[[i]])*len(inds)
 
     return(result)
 
