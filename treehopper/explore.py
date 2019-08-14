@@ -44,7 +44,7 @@ def expand(smalldata, fulldata, vc_name = 'vcell'):
         print(i)
         inds = np.where([y==x for y in fullcells])
         for o in smalldata.obs.columns:
-            result.obs[o].iloc[inds,:] = list(smalldata.obs[o].iloc[i,:])*len(inds)
+            result.obs[o].iloc[inds] = list(smalldata.obs[o].iloc[i])*len(inds)
 
     return(result)
 
