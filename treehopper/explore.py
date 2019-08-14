@@ -14,8 +14,8 @@ def compress(adata, hopper, vc_name = 'vcell', wt_name='wt'):
 
     #compute counts in each cell
     counter = Counter(vcells)
-    print(counter)
-    print(hopper.path_inds)
+    #print(counter)
+    #print(hopper.path_inds)
     wts = [counter[x] for x in hopper.path_inds]
 
     result = adata[path,:]
@@ -33,8 +33,22 @@ def expand(smalldata, fulldata, vc_name = 'vcell'):
     print(smallcells)
     print(fullcells)
 
+    for x in fullcells:
+        if x in smallcells:
+            idx = smallcells.index(x):
+
+
     idx = np.where([x in smallcells for x in fullcells])[0]
+
     result = fulldata[idx,:]
+    for o in smalldata.obs.columns:
+        result.obs[o] = [None]*len(idx)
+
+
+    for i,x in enumerate(smallcells):
+        inds = np.where([y==x for y in fullcells])
+        for o in smalldata.obs.columns:
+            result.obs[o][inds,:] = list(smalldata.obs[o][i])*len(inds)
 
     return(result)
 
@@ -47,12 +61,15 @@ def subset(adata, obs_key, obs_values):
 
 
 def viz(adata, rep = 'X_ica',louvain=True, **kwargs):
+    print('computing neighbor graph...')
     if 'neighbors' not in adata.uns:
         sc.pp.neighbors(adata, use_rep=rep)
 
+    print('running UMAP...')
     if 'X_umap' not in adata.obsm:
         sc.tl.umap(adata)
 
+    print('Louvain clustering...')
     if 'louvain' not in adata.obs:
         sc.tl.louvain(adata)
 
