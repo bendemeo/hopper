@@ -47,7 +47,29 @@ def expand(smalldata, fulldata, vc_name = 'vcell'):
     #         print(o)
     #         result.obs[o].iloc[inds] = list(smalldata.obs[o].iloc[[i]])*len(inds)
 
+
     return(result)
+
+def expand_clusterings(smalldata, fulldata, cluster_name='louvain', clusters = None, vc_name='vcell'):
+
+    fulldata.obs[cluster_name]=[None]*fulldata.obs.shape[0]
+
+    for i,cell in list(smalldata.obs[vc_name]):
+        inds = np.where(y==x for y in list(fulldata.obs[vc_name]))
+        print(inds)
+        for i in inds:
+            fulldata.obs[cluster_name][i]=smalldata.obs[cluster_name][i]
+
+    return(fulldata)
+
+    # if clusters is none:
+    #     clusters = np.unique(smalldata.obs[cluster_name])
+    #
+    #
+    # for c in clusters:
+    #     small = subset(smalldata, cluster_name, c)
+    #     big = expand()
+
 
 def subset(adata, obs_key, obs_values):
     obs_vals = list(adata.obs[obs_key])
