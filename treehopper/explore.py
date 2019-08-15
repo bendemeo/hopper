@@ -50,7 +50,7 @@ def expand(smalldata, fulldata, vdict=None, vc_name = 'vcell'):
 
     return(result)
 
-def expand_clusterings(smalldata, fulldata, vdict=None, cluster_name='louvain', new_cluster_name=None, clusters = None, vc_name='vcell'):
+def expand_clusterings(smalldata, fulldata, vdict=None, vcells=None, cluster_name='louvain', new_cluster_name=None, clusters = None, vc_name='vcell'):
 
     if new_cluster_name is None:
         new_cluster_name = cluster_name
@@ -60,7 +60,9 @@ def expand_clusterings(smalldata, fulldata, vdict=None, cluster_name='louvain', 
     newclusts = np.array([None]*fulldata.obs.shape[0])
     if vdict is None: #build reverse lookup
         vdict = {}
-        for i,c in enumerate(fulldata.obs[vc_name]):
+        if vcells is None:
+            vcells = fulldata.obs[vc_name]
+        for i,c in enumerate(vcells):
             if c not in vdict:
                 vdict[c] = [i]
             else:
