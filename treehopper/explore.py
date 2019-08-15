@@ -24,7 +24,7 @@ def compress(adata, hopper, vc_name = 'vcell', wt_name='wt'):
     return(result)
 
 
-def expand(smalldata, fulldata, vc_name = 'vcell'):
+def expand(smalldata, fulldata, vdict=None, vc_name = 'vcell'):
     '''given a small dataset with compression info, expand to full points,
     keeping all observation data (e.g. clusters)'''
 
@@ -50,14 +50,21 @@ def expand(smalldata, fulldata, vc_name = 'vcell'):
 
     return(result)
 
-def expand_clusterings(smalldata, fulldata, cluster_name='louvain', clusters = None, vc_name='vcell'):
+def expand_clusterings(smalldata, fulldata, vdict=None, cluster_name='louvain', clusters = None, vc_name='vcell'):
 
     fulldata.obs[cluster_name]=[None]*fulldata.obs.shape[0]
 
+    if vdict is None: #build reverse lookup
+        vdict = {}
+        for i,c in enumerate(fulldata.obs[vc_name]):
+            if c not in vdict:
+                vdict[c] = [i]
+            else:
+                vdict[c].append(i)
+
     for i, cell in enumerate(list(smalldata.obs[vc_name])):
         print(i)
-        # print(cell)
-        inds = np.where([y==cell for y in list(fulldata.obs[vc_name])])[0]
+        inds = vdict[cell]
         # print(inds)
         # print(list(smalldata.obs[cluster_name].iloc[i]))
         # print(smalldata.obs[cluster_name])
