@@ -50,9 +50,12 @@ def expand(smalldata, fulldata, vdict=None, vc_name = 'vcell'):
 
     return(result)
 
-def expand_clusterings(smalldata, fulldata, vdict=None, cluster_name='louvain', clusters = None, vc_name='vcell'):
+def expand_clusterings(smalldata, fulldata, vdict=None, cluster_name='louvain', new_cluster_name=None, clusters = None, vc_name='vcell'):
 
-    fulldata.obs[cluster_name]=[None]*fulldata.obs.shape[0]
+    if new_cluster_name is None:
+        new_cluster_name = cluster_name
+
+    fulldata.obs[new_cluster_name]=[None]*fulldata.obs.shape[0]
 
     if vdict is None: #build reverse lookup
         vdict = {}
@@ -68,7 +71,7 @@ def expand_clusterings(smalldata, fulldata, vdict=None, cluster_name='louvain', 
         # print(inds)
         # print(list(smalldata.obs[cluster_name].iloc[i]))
         # print(smalldata.obs[cluster_name])
-        fulldata.obs[cluster_name].iloc[inds]=len(inds)*[smalldata.obs[cluster_name].iloc[i]]
+        fulldata.obs[new_cluster_name].iloc[inds]=len(inds)*[smalldata.obs[cluster_name].iloc[i]]
 
     return(fulldata)
 
