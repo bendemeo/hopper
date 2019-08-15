@@ -6,6 +6,7 @@ from heapq import heappush, heappop, heapify, heapreplace
 from sklearn.metrics import pairwise_distances
 import pickle
 from time import time
+from fbpca import pca
 
 
 
@@ -45,7 +46,37 @@ def RPartition(data, max_partition_size=1000, inds=None):
 
 
 
+def PCATreePartition(data, max_partition_size=1000, inds=None):
+    partitions = []
+    if inds is None:
+        inds = list(range(data.shape[0]))
 
+    heappush(partitions, (-1*data.shape[0], list(range(data.shape[0]))))
+
+    current_partition = heappop(partitions)
+
+    while(len(current_partition[1]) > max_partition_size):
+        rows = current_partition[1]
+        subset = data[rows,:]
+
+        U,s,Vt = pca(subset, k=1)
+
+        pcvals = U[:,:1] * s[:1]
+        #print(pcvals)
+
+        mid = np.median(pcvals)
+        split = pcvals > mid
+
+        p1 = list(itertools.compress(rows, split))
+        p2 = list(itertools.compress(rows, 1-split))
+
+        heappush(partitions, (-1*len(p1), p1))
+        heappush(partitions, (-1*len(p2),  p2))
+
+        current_partition = heappop(partitions)
+
+    heappush(partitions, current_partition)
+    return([x[1] for x in partitions])
 
 
 @total_ordering
@@ -285,7 +316,7 @@ class hopper:
 
 class treehopper:
     def __init__(self, data, splits=2, metric=euclidean, inds=None,
-                 pre_partition = False,
+                 partition = None,
                  max_partition_size=1000):
 
         t0 = time()
@@ -315,10 +346,13 @@ class treehopper:
         self.hheap = []
         self.splits = splits
 
-        if pre_partition:
-            '''use RP-partition to split data beforehand'''
-            print('Pre-partitioning...')
-            P = RPartition(data, max_partition_size, inds)
+        if partition is not None:
+            if callable(partition):
+                '''use partitioner'''
+                print('Pre-partitioning...')
+                P = partition(data, max_partition_size, inds)
+            else:
+                P = partition
             for rows in P:
                 h = hopper(data[rows,:], metric, rows)
                 h.hop() #hop once to set root
