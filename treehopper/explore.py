@@ -55,8 +55,9 @@ def expand_clusterings(smalldata, fulldata, vdict=None, cluster_name='louvain', 
     if new_cluster_name is None:
         new_cluster_name = cluster_name
 
-    fulldata.obs[new_cluster_name]=[None]*fulldata.obs.shape[0]
+    #fulldata.obs[new_cluster_name]=[None]*fulldata.obs.shape[0]
 
+    newclusts = np.array([None]*fulldata.obs.shape[0])
     if vdict is None: #build reverse lookup
         vdict = {}
         for i,c in enumerate(fulldata.obs[vc_name]):
@@ -71,8 +72,9 @@ def expand_clusterings(smalldata, fulldata, vdict=None, cluster_name='louvain', 
         # print(inds)
         # print(list(smalldata.obs[cluster_name].iloc[i]))
         # print(smalldata.obs[cluster_name])
-        fulldata.obs[new_cluster_name].iloc[inds]=len(inds)*[smalldata.obs[cluster_name].iloc[i]]
+        newclusts[inds]=len(inds)*[smalldata.obs[cluster_name].iloc[i]]
 
+    fulldata.obs[new_cluster_name] = newclusts
     return(fulldata)
 
     # if clusters is none:
