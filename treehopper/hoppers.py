@@ -322,9 +322,9 @@ class treehopper:
             for rows in P:
                 h = hopper(data[rows,:], metric, rows)
                 h.hop() #hop once to set root
-                next = h.path_inds[-1]
-                self.path.append(next)
-                self.path_inds.append(inds[next])
+                # next = h.path_inds[-1]
+                # self.path.append(next)
+                # self.path_inds.append(inds[next])
                 heappush(self.hheap, h)
             print('Pre-partitioning done, added {} points'.format(len(self.path)))
 
@@ -342,6 +342,13 @@ class treehopper:
             h = heappop(self.hheap)
             print('hopping with {} points'.format(h.numObs))
             print('radius {}'.format(h.r))
+
+
+            if len(h.path) == 1: #first in a partition; add first two points
+                next = h.path_inds[-1]
+                self.path.append(next)
+                self.path_inds.append(self.inds[next])
+
 
             self.r = h.r
             self.rs.append(self.r)
