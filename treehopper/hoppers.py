@@ -315,7 +315,7 @@ class hopper:
             self.rs = hdata['rs']
 
 class treehopper:
-    def __init__(self, data, splits=2, metric=euclidean, inds=None,
+    def __init__(self, data, splits=float('inf'), metric=euclidean, inds=None,
                  partition = None,
                  max_partition_size=1000):
 
