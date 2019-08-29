@@ -7,6 +7,8 @@ from sklearn.metrics import pairwise_distances
 import pickle
 from time import time
 from fbpca import pca
+from contextlib import suppress
+from copy import deepcopy
 
 
 
@@ -85,63 +87,68 @@ class hopper:
 
         t0 = time()
         self.times = [] # store runtimes after each hop
-
         self.r = start_r #current Haus distance
         self.rs = [] # keep track of haus after each time point
-        self.numObs, self.numFeatures = data.shape
+
+        if data is None:
+            self.numObs = None
+            self.numFeatures = None
+        else:
+            self.numObs, self.numFeatures = data.shape
 
         if inds is None:
             inds = range(self.numObs)
 
         self.inds = inds
         self.data = data
-        self.path = []
+        self.path = [] #init empty traversal
         self.path_inds = []
 
-        self.min_dists = []
+        self.min_dists = [] #dist to closest pt in traversal
 
-        avail_inds = list(range(self.numObs))
-        self.avail_inds = avail_inds
+        # avail_inds = list(range(self.numObs))
+        # self.avail_inds = avail_inds
 
         self.distfunc = metric
         self.vcells=None
         self.vdict=None
+        self.wts = None
+
         self.root = root
         self.init_time = time()-t0
         self.times.append(self.init_time)
 
-
     def hop(self, n_hops=1, store_vcells=True):
         '''generate exact far traversal'''
+
+        if self.data is None: #only stores path info
+            raise Exception('no data stored in this hopper!')
 
         for _ in itertools.repeat(None, n_hops):
             t0 = time()
             print('beginning traversal! {} items to traverse'.format(self.numObs))
+
             if len(self.path) == 0:
                 #set starting point, initialize dist heap
-
                 if self.root is None:
                     first = np.random.choice(list(range(self.numObs)))
                 else:
                     first = self.root
 
-
                 self.path.append(first)
                 self.path_inds.append(self.inds[first])
-
 
                 first_pt = self.data[first,:].reshape((1,self.numFeatures))
 
                 start_dists = pairwise_distances(first_pt, self.data, metric=self.distfunc)[0,:]
                 start_dists = np.array(start_dists)
 
+                #initialize min distances heap
                 for ind in range(self.numObs):
                     if ind != first:
                         heappush(self.min_dists, (-1*start_dists[ind], ind))
 
-
-                if store_vcells:
-                    self.vcells = [self.inds[first]] * self.numObs
+                self.vcells = [self.inds[first]] * self.numObs
 
             else:
                 if len(self.min_dists) < 1:
@@ -153,6 +160,7 @@ class hopper:
 
                 self.path.append(next_ind)
                 self.path_inds.append(self.inds[next_ind])
+
                 if store_vcells:
                     self.vcells[next_ind]=self.inds[next_ind]
 
@@ -204,81 +212,13 @@ class hopper:
             self.rs.append(self.r)
             self.times.append(self.times[-1]+time()-t0)
 
-                #
-                # for i,tuple in enumerate(check_list):
-                #     new = new_dists[i]
-                #     prev = prev_dists[i]
-                #     idx = tuple[1]
-                #     if new < prev:
-                #         heappush(self.min_dists, (-1*new, idx))
-                #         self.vcells[idx] = self.inds[next_ind]
-                #
-                #     else: #no change; put it back
-                #         heappush(self.min_dists, tuple)
-
-                # #places where dists MAY be changed
-                # check = np.array(self.min_dists) > float(self.r)/2
-                # check_pos = list(itertools.compress(range(len(self.avail_inds)),check))
-                # check_inds = np.array(self.avail_inds)[check_pos]
-                #
-                # print('{} indices to check'.format(len(check_inds)))
-                #
-                # #compute distances
-                # dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
-                # dists = np.array(dists)
-                #
-                # #find places where distance WILL be changed
-                # prev_dists = np.array(self.min_dists)[check_pos]
-                # change = (dists < prev_dists)
-                #
-                # change_pos = list(itertools.compress(range(len(check_pos)),change))
-                # change_inds = np.array(check_pos)[change_pos]
-                #
-                # #update minimum distances and vcells, if applicable
-                # for i, idx in enumerate(change_pos):
-                #     #print(self.min_dists[idx])
-                #     self.min_dists[change_inds[i]] = dists[idx]
-                #     self.closest[change_inds[i]] = len(self.path) - 1
-                #     # self.r = max(self.r, )
-                #     # self.rs[len(self.path)-1] = max(self.rs[len(self.path)-1],
-                #     #                                 self.min_dists[idx])
-                #     if store_vcells:
-                #         self.vcells[check_inds[change_pos[i]]] = self.inds[next_ind]
-                #
-                #
-                # #This line may be a bit slow -- consider sorting min_dists?
-                # self.max_pos = self.min_dists.index(max(self.min_dists))
-                # self.r = self.min_dists[self.max_pos]
-
-                # #TODO speed up with sklearn.metrics.pairwise_distances (I did it! Hence this is commented)
-                # for pos, ind in enumerate(self.avail_inds):
-                #
-                #     if self.min_dists[pos] < float(self.r)/2.:
-                #         if store_vcells:
-                #             self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
-                #         continue
-                #         # no need to check; old point is closer
-                #
-                #     cur_dist = self.distfunc(self.data[ind,:],next_pt)
-                #     if cur_dist < self.min_dists[pos]:
-                #         self.closest[pos] = len(self.path) - 1
-                #         self.min_dists[pos] = cur_dist
-                #
-                #         if store_vcells: #todo make this work only once
-                #             #update voronoi cell with self
-                #             self.vcells[ind] = self.inds[next_ind]
-                #
-                #     #update rs
-                #     self.rs[self.closest[pos]] = max(self.rs[self.closest[pos]], self.min_dists[pos])
-                #
-                #     if store_vcells:
-                #         self.vdict[self.path_inds[self.closest[pos]]].append(self.inds[ind])
-                #
-                # self.r = max(self.rs)
-                # print('r values: {}'.format(self.rs))
-                #print(self.r)
 
         return(self.path)
+
+    def get_wts(self):
+        #See how many points each represents
+        counter = Counter(self.vcells)
+        self.wts = [counter[x] for x in hopper.path_inds]
 
     def get_vdict(self):
         #compute dictionary from cell ids
@@ -299,7 +239,7 @@ class hopper:
 
     def write(self, filename):
         data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds,
-                'times':self.times,'rs':self.rs}
+                'times':self.times,'rs':self.rs, 'wts':self.wts}
         with open(filename, 'wb') as f:
             pickle.dump(data, f)
 
@@ -313,8 +253,59 @@ class hopper:
             self.path_inds = hdata['path_inds']
             self.times = hdata['times']
             self.rs = hdata['rs']
+            if 'wts' in hdata:
+                self.wts = hdata['wts']
 
-class treehopper:
+    def __getitem__(self, key):
+        #subsets path, and includes from the data only those indices nearest
+        #to the subset path points
+
+        if self.vdict is None:
+            self.get_vdict()
+        result = deepcopy(self)
+        result.path = np.array(self.path)[key]
+        result.path_inds = np.array(self.path_inds)[key]
+        result.vdict = {c:self.vdict[c] for c in result.path_inds}
+
+
+        #included indices, in sorted order
+        included = np.array([False]*self.numObs)
+
+        #find out which points are included
+        for k in result.vdict:
+            included[result.vdict[k]] = [True]*len(result.vdict[k])
+
+        where_included = list(itertools.compress(list(range(len(self.inds))), included))
+        #print(where_included)
+        result.inds = np.array(self.inds)[where_included]
+
+        if self.data is None:
+            result.data = None
+        else:
+            result.data = self.data[where_included,:]
+        return(result)
+
+    def compress(self, data):
+        return data[self.path_inds,:]
+
+    def expand(self, fulldata):
+        #use a hopper's data to nearest-neighbor classify full data
+        #way to retain attributes of small data e.g. louvain clusters?
+        #all attributes stored in the full data are kept!
+
+        if self.vdict is None:
+            self.get_vdict()
+
+        inds = []
+
+        for c in self.vdict.keys():
+            inds += self.vdict[c]
+
+        #print(inds)
+        return fulldata[inds,:]
+
+
+class treehopper(hopper):
     def __init__(self, data, splits=float('inf'), metric=euclidean, inds=None,
                  partition = None,
                  max_partition_size=1000):
@@ -354,7 +345,7 @@ class treehopper:
             else:
                 P = partition
             for rows in P:
-                h = hopper(data[rows,:], metric, rows)
+                h = hopper(data[rows,:], metric, inds=rows)
                 h.hop() #hop once to set root
                 # next = h.path_inds[-1]
                 # self.path.append(next)
@@ -405,7 +396,7 @@ class treehopper:
                     for vcell in h.vdict.keys():
                         vcelldata = self.data[h.vdict[vcell],:]
 
-                        avail_idx = np.array(h.inds)[h.avail_inds].tolist()
+                        #avail_idx = np.array(h.inds)[h.avail_inds].tolist()
 
 
 
@@ -459,6 +450,13 @@ class treehopper:
         with open(filename, 'wb') as f:
             pickle.dump(data, f)
 
+    def get_wts(self):
+        if self.vcells is None:
+            self.get_vcells()
+        #See how many points each represents
+        counter = Counter(self.vcells)
+        self.wts = [counter[x] for x in hopper.path_inds]
+
     def read(self, filename):
         '''load hopData file and store into its values'''
         with open(filename, 'rb') as f:
@@ -470,5 +468,7 @@ class treehopper:
                 self.vdict = hdata['vdict']
             if 'vcells' in hdata:
                 self.vcells = hdata['vcells']
+            if 'wts' in hdata:
+                self.wts = hdata['wts']
             self.times = hdata['times']
             self.rs = hdata['rs']
