@@ -465,6 +465,7 @@ class treehopper(hopper):
         result = {}
         for h in self.hheap:
             result.update(h.get_vdict())
+            print(len(result))
 
         self.vdict = result
         return(result)
