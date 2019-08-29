@@ -99,15 +99,15 @@ def viz(adata, rep = '',louvain=True, **kwargs):
         suffix=rep
 
     print('computing neighbor graph...')
-    if 'neighbors{}'.format(suffix) not in adata.uns:
+    if 'neighbors'.format(suffix) not in adata.uns:
         sc.pp.neighbors(adata, use_rep=rep)
 
     print('running UMAP...')
-    if 'X_umap{}'.format(suffix) not in adata.obsm:
+    if 'X_umap'.format(suffix) not in adata.obsm:
         sc.tl.umap(adata)
 
     print('Louvain clustering...')
-    if 'louvain{}'.format(suffix) not in adata.obs:
+    if 'louvain'.format(suffix) not in adata.obs:
         sc.tl.louvain(adata)
 
     sc.pl.umap(adata, **kwargs)
