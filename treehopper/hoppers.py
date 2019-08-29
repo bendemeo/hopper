@@ -289,7 +289,7 @@ class hopper:
     def compress(self, data):
         return data[self.path_inds,:]
 
-    def expand(self, fulldata):
+    def expand(self, fulldata, attrs=None):
         #use a hopper's data to nearest-neighbor classify full data
         #way to retain attributes of small data e.g. louvain clusters?
         #all attributes stored in the full data are kept!
@@ -299,11 +299,50 @@ class hopper:
 
         inds = []
 
-        for c in self.vdict.keys():
-            inds += self.vdict[c]
+        if attrs is None:
+            for c in self.vdict.keys():
+                inds += self.vdict[c]
 
-        #print(inds)
-        return fulldata[inds,:]
+            #print(inds)
+            return fulldata[sorted(inds),:]
+
+        else:
+            #ensure it's 2D
+            attrs = np.array(attrs)
+            if len(attrs.shape) == 1:
+                attrs = attrs.reshape((attrs.shape[0], 1))
+
+
+            inds = []
+            for i in range(attrs.shape[0]):
+                cell = self.path_inds[i]
+                inds += [(v,attrs[i,:]) for v in self.vdict[cell]]
+
+            inds = sorted(inds)
+            subsample = [x[0] for x in inds]
+            attrs = np.array([x[1] for x in inds])
+            result = {'data':fulldata[subsample,:], 'attrs':attrs}
+            return(result)
+
+    # def expand_attr(self, attrs, fulldata):
+    #     '''Expand a label by nearest-neighbor classification'''
+    #
+    #     if self.vdict is None:
+    #         self.get_vdict()
+    #
+    #     #ensure it's 2D
+    #     attrs = np.array(attrs)
+    #     if len(attrs.shape) == 1:
+    #         attrs = attrs.reshape((attrs.shape[0], 1))
+    #
+    #
+    #     inds = []
+    #     for i in range(attrs.shape[0]):
+    #         cell = self.path_inds[i]
+    #         inds += [(v,attrs[i,:]) for v in self.vdict[cell]]
+    #
+    #     result = sorted(inds)
+
 
 
 class treehopper(hopper):
