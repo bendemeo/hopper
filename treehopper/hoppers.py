@@ -118,6 +118,7 @@ class hopper:
         self.root = root
         self.init_time = time()-t0
         self.times.append(self.init_time)
+        self.new = True # for Treehopper
 
     def hop(self, n_hops=1, store_vcells=True):
         '''generate exact far traversal'''
@@ -219,7 +220,7 @@ class hopper:
     def get_wts(self):
         #See how many points each represents
         counter = Counter(self.vcells)
-        self.wts = [counter[x] for x in hopper.path_inds]
+        self.wts = [counter[x] for x in self.path_inds]
 
     def get_vdict(self):
         #compute dictionary from cell ids
@@ -376,6 +377,7 @@ class treehopper(hopper):
         self.vdict=None
         self.hheap = []
         self.splits = splits
+        self.new = True
 
         if partition is not None:
             if callable(partition):
@@ -409,10 +411,29 @@ class treehopper(hopper):
             print('radius {}'.format(h.r))
 
 
-            if len(h.path) == 1: #first in a partition; add first two points
+            if h.new: #first hop in this partition
+                h.new = False # explored this one
                 next = h.path_inds[-1]
                 self.path.append(next)
                 self.path_inds.append(self.inds[next])
+                self.r = h.r
+                self.rs.append(self.r)
+                heappush(self.hheap, h)
+                self.times.append(self.times[-1]+time()-t0)
+                print('continuing')
+                continue
+
+            # if len(h.path) == 1: #first in a partition; add first two points
+            #     next = h.path_inds[-1]
+            #     self.path.append(next)
+            #     self.path_inds.append(self.inds[next])
+            #     self.r = h.r
+            #     self.rs.append(self.r)
+            #     h.hop()
+            #     heappush(self.hheap, h)
+            #     self.times.append(self.times[-1]+time()-t0)
+            #     print('continuing')
+            #     continue
 
 
             self.r = h.r
@@ -464,8 +485,11 @@ class treehopper(hopper):
     def get_vdict(self):
         result = {}
         for h in self.hheap:
-            result.update(h.get_vdict())
-            print(len(result))
+            if not h.new: #only update if it's been sampled
+                result.update(h.get_vdict())
+                print('adding {}'.format(len(h.get_vdict())))
+                print('{} in path'.format(len(h.path)))
+                print(len(result))
 
         self.vdict = result
         return(result)
