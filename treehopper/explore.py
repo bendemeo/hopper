@@ -88,7 +88,7 @@ def subset(adata, obs_key, obs_values):
     return(adata[idx,:])
 
 
-def viz(adata, rep = '',louvain=True, **kwargs):
+def viz(adata, rep = '',louvain=True, rerun=False, **kwargs):
     '''visualize an AnnData object using UMAP and Louvain'''
 
     if rep is None:
@@ -99,15 +99,15 @@ def viz(adata, rep = '',louvain=True, **kwargs):
         suffix=rep
 
     print('computing neighbor graph...')
-    if 'neighbors'.format(suffix) not in adata.uns:
+    if rerun or 'neighbors'.format(rep) not in adata.uns:
         sc.pp.neighbors(adata, use_rep=rep)
 
     print('running UMAP...')
-    if 'X_umap'.format(suffix) not in adata.obsm:
+    if rerun or 'X_umap' not in adata.obsm:
         sc.tl.umap(adata)
 
     print('Louvain clustering...')
-    if 'louvain'.format(suffix) not in adata.obs:
+    if rerun or 'louvain' not in adata.obs:
         sc.tl.louvain(adata)
 
     sc.pl.umap(adata, **kwargs)
