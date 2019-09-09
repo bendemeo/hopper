@@ -128,14 +128,17 @@ class hopper:
 
         for _ in itertools.repeat(None, n_hops):
             t0 = time()
-            print('beginning traversal! {} items to traverse'.format(self.numObs))
+
 
             if len(self.path) == 0:
+                print('beginning traversal! {} items to traverse'.format(self.numObs))
                 #set starting point, initialize dist heap
                 if self.root is None:
                     first = np.random.choice(list(range(self.numObs)))
                 else:
                     first = self.root
+
+                first_heap = []
 
                 self.path.append(first)
                 self.path_inds.append(self.inds[first])
@@ -148,16 +151,24 @@ class hopper:
                 #initialize min distances heap
                 for ind in range(self.numObs):
                     if ind != first:
-                        heappush(self.min_dists, (-1*start_dists[ind], ind))
+                        heappush(first_heap, (-1*start_dists[ind], ind))
+
+
+                heappush(self.min_dists, [first_heap[0][0], first, first_heap])
 
                 self.vcells = [self.inds[first]] * self.numObs
 
             else:
+                total_checked = 0
                 if len(self.min_dists) < 1:
                     print('hopper exhausted!')
                     break
 
-                next_ind = heappop(self.min_dists)[1]
+                next_ind = self.min_dists[0][2][0][1]
+                #print('ind: {}'.format(next_ind))
+                cur_rad = -1*self.min_dists[0][0]
+
+                #next_ind = heappop(self.min_dists)[1]
                 next_pt = self.data[next_ind,:].reshape((1,self.numFeatures))
 
                 self.path.append(next_ind)
@@ -166,31 +177,41 @@ class hopper:
                 if store_vcells:
                     self.vcells[next_ind]=self.inds[next_ind]
 
+                new_heap = []
 
-                #find places where dists MAY be changed
-                check_inds = [] # what indices to check
-                check_list = [] # list of heap elements to check
-                prev_dists = [] # prior distances
+                for j, tup in reversed(list(enumerate(self.min_dists))):
+                    cur_ind = tup[1]
+                    #print('current_index: {}'.format(cur_ind))
+                    #print([x[1] for x in self.min_dists])
+                    #print([x[0] for x in self.min_dists])
+                    cur_pt = self.data[cur_ind,:].reshape((1,self.numFeatures))
+                    if self.distfunc(cur_pt, next_pt) > (2 * cur_rad):
+                        #too far away; ignore this cell entirely
+                        #print('too far!')
+                        continue
 
-                r = float('inf')
+                    cur_heap = tup[2]
 
-                if len(self.min_dists) > 0:
-                    while r > self.r/2 and len(self.min_dists) > 0:
-                        curtuple = heappop(self.min_dists)
+                    #find places where dists MAY be changed
+                    check_inds = [] # what indices to check
+                    check_list = [] # list of heap elements to check
+                    prev_dists = [] # prior distances
+
+                    r = float('Inf')
+                    while r > self.r/2 and len(cur_heap) > 0:
+                        curtuple = heappop(cur_heap)
                         check_inds.append(curtuple[1])
                         check_list.append(curtuple)
                         prev_dists.append(-1*curtuple[0])
                         r = -1*curtuple[0]
 
-                    heappush(self.min_dists, curtuple)
+                    heappush(cur_heap, curtuple)
 
-                    print('checking {} points'.format(len(check_list)))
-
-                    #compute pairwise distances
+                    #print('checking {} points out of {}'.format(len(check_list), len(cur_heap)+len(check_list)))
                     new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
+                    total_checked += len(check_list)
                     new_dists = np.array(new_dists)
 
-                    #filter by changed vs. unchanged. Faster than looping
                     ischanged = (new_dists < prev_dists)
                     changed = list(itertools.compress(range(len(ischanged)),ischanged))
                     unchanged = list(itertools.compress(range(len(ischanged)),1-np.array(ischanged)))
@@ -198,12 +219,62 @@ class hopper:
                     for i in changed:
                         new = new_dists[i]
                         idx = check_list[i][1]
-                        heappush(self.min_dists, (-1*new, idx))
+                        heappush(new_heap, (-1*new, idx))
                         self.vcells[idx] = self.inds[next_ind]
                     for i in unchanged:
-                        heappush(self.min_dists, check_list[i])
-                else:
-                    print('hopper exhausted!')
+                        heappush(cur_heap, check_list[i])
+
+                    if len(cur_heap) > 0:
+                        #print(cur_heap[:4])
+                        tup[0] = cur_heap[0][0] #update radius to reflect lost points
+                    else: # heap is irrelevant; delete it
+                        del self.min_dists[j]
+
+
+                heapify(self.min_dists)
+                if len(new_heap) > 0:
+                    heappush(self.min_dists, [new_heap[0][0],next_ind, new_heap])
+                print('checked {} points total'.format(total_checked))
+
+
+
+                # #find places where dists MAY be changed
+                # check_inds = [] # what indices to check
+                # check_list = [] # list of heap elements to check
+                # prev_dists = [] # prior distances
+                #
+                # r = float('inf')
+                #
+                # if len(self.min_dists) > 0:
+                #     while r > self.r/2 and len(self.min_dists) > 0:
+                #         curtuple = heappop(self.min_dists)
+                #         check_inds.append(curtuple[1])
+                #         check_list.append(curtuple)
+                #         prev_dists.append(-1*curtuple[0])
+                #         r = -1*curtuple[0]
+                #
+                #     heappush(self.min_dists, curtuple)
+                #
+                #     print('checking {} points'.format(len(check_list)))
+                #
+                #     #compute pairwise distances
+                #     new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
+                #     new_dists = np.array(new_dists)
+                #
+                #     #filter by changed vs. unchanged. Faster than looping
+                #     ischanged = (new_dists < prev_dists)
+                #     changed = list(itertools.compress(range(len(ischanged)),ischanged))
+                #     unchanged = list(itertools.compress(range(len(ischanged)),1-np.array(ischanged)))
+                #
+                #     for i in changed:
+                #         new = new_dists[i]
+                #         idx = check_list[i][1]
+                #         heappush(self.min_dists, (-1*new, idx))
+                #         self.vcells[idx] = self.inds[next_ind]
+                #     for i in unchanged:
+                #         heappush(self.min_dists, check_list[i])
+                # else:
+                #     print('hopper exhausted!')
 
 
             #store Hausdorff and time information
@@ -521,6 +592,7 @@ class treehopper(hopper):
         #See how many points each represents
         counter = Counter(self.vcells)
         self.wts = [counter[x] for x in hopper.path_inds]
+        return(self.wts)
 
     def read(self, filename):
         '''load hopData file and store into its values'''
