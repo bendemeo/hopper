@@ -208,7 +208,7 @@ class hopper:
 
                     #print('checking {} points out of {}'.format(len(check_list), len(cur_heap)+len(check_list)))
                     new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
-                    print('{} of {}'.format(len(check_list), len(check_list)+len(cur_heap)))
+                    #print('{} of {}'.format(len(check_list), len(check_list)+len(cur_heap)))
                     total_checked += len(check_list)
                     #print(total_checked)
                     new_dists = np.array(new_dists)
