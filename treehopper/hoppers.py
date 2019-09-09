@@ -235,8 +235,10 @@ class hopper:
                 heapify(self.min_dists)
                 if len(new_heap) > 0:
                     heappush(self.min_dists, [new_heap[0][0],next_ind, new_heap])
-                print('checked {} points total'.format(total_checked))
-                print('checked {} cells of {}'.format(cells_checked,len(self.path)))
+
+                print('sampled {}th point, checked {} points total, {} cells examined'.format(len(self.path), total_checked, len(self.path)))
+                # print('checked {} points total'.format(total_checked))
+                # print('checked {} cells of {}'.format(cells_checked,len(self.path)))
 
 
 
