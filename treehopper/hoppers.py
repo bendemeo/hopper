@@ -120,6 +120,7 @@ class hopper:
         self.times.append(self.init_time)
         self.new = True # for Treehopper
 
+
     def hop(self, n_hops=1, store_vcells=True):
         '''generate exact far traversal'''
 
