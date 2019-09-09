@@ -160,7 +160,9 @@ class hopper:
                 self.vcells = [self.inds[first]] * self.numObs
 
             else:
+                #print(self.min_dists[:5])
                 total_checked = 0
+                cells_checked = 0
                 if len(self.min_dists) < 1:
                     print('hopper exhausted!')
                     break
@@ -182,15 +184,11 @@ class hopper:
 
                 for j, tup in reversed(list(enumerate(self.min_dists))):
                     cur_ind = tup[1]
-                    #print('current_index: {}'.format(cur_ind))
-                    #print([x[1] for x in self.min_dists])
-                    #print([x[0] for x in self.min_dists])
                     cur_pt = self.data[cur_ind,:].reshape((1,self.numFeatures))
                     if self.distfunc(cur_pt, next_pt) > (2 * cur_rad):
                         #too far away; ignore this cell entirely
-                        #print('too far!')
                         continue
-
+                    cells_checked += 1
                     cur_heap = tup[2]
 
                     #find places where dists MAY be changed
@@ -206,11 +204,13 @@ class hopper:
                         prev_dists.append(-1*curtuple[0])
                         r = -1*curtuple[0]
 
-                    heappush(cur_heap, curtuple)
+                    #heappush(cur_heap, curtuple)
 
                     #print('checking {} points out of {}'.format(len(check_list), len(cur_heap)+len(check_list)))
                     new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
+                    print('{} of {}'.format(len(check_list), len(check_list)+len(cur_heap)))
                     total_checked += len(check_list)
+                    #print(total_checked)
                     new_dists = np.array(new_dists)
 
                     ischanged = (new_dists < prev_dists)
@@ -236,6 +236,7 @@ class hopper:
                 if len(new_heap) > 0:
                     heappush(self.min_dists, [new_heap[0][0],next_ind, new_heap])
                 print('checked {} points total'.format(total_checked))
+                print('checked {} cells of {}'.format(cells_checked,len(self.path)))
 
 
 
