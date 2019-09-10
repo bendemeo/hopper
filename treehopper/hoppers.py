@@ -190,8 +190,9 @@ class hopper:
                     cell_radius = -1*tup[0]
                     if cell_radius < (cur_rad / 2):
                         continue
+
                     if self.distfunc(cur_pt, next_pt) > (2 * cur_rad):
-                        #too far away; ignore this cell entirely
+                        #too far away; ignore all points in this cell
                         continue
                     cells_checked += 1
                     cur_heap = tup[2]
@@ -242,7 +243,7 @@ class hopper:
                     heappush(self.min_dists, [new_heap[0][0],next_ind, new_heap])
 
                 self.cells_examined.append(cells_checked)
-                self.points_examined.append(points_checked)
+                self.points_examined.append(total_checked)
                 print('sampled {}th point, checked {} points total, {} cells examined'.format(len(self.path), total_checked, cells_checked))
                 # print('checked {} points total'.format(total_checked))
                 # print('checked {} cells of {}'.format(cells_checked,len(self.path)))
