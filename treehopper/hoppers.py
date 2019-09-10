@@ -119,6 +119,8 @@ class hopper:
         self.init_time = time()-t0
         self.times.append(self.init_time)
         self.new = True # for Treehopper
+        self.points_examined = []
+        self.cells_examined = []
 
 
     def hop(self, n_hops=1, store_vcells=True):
@@ -185,6 +187,9 @@ class hopper:
                 for j, tup in reversed(list(enumerate(self.min_dists))):
                     cur_ind = tup[1]
                     cur_pt = self.data[cur_ind,:].reshape((1,self.numFeatures))
+                    cell_radius = -1*tup[0]
+                    if cell_radius < (cur_rad / 2):
+                        continue
                     if self.distfunc(cur_pt, next_pt) > (2 * cur_rad):
                         #too far away; ignore this cell entirely
                         continue
@@ -236,6 +241,8 @@ class hopper:
                 if len(new_heap) > 0:
                     heappush(self.min_dists, [new_heap[0][0],next_ind, new_heap])
 
+                self.cells_examined.append(cells_checked)
+                self.points_examined.append(points_checked)
                 print('sampled {}th point, checked {} points total, {} cells examined'.format(len(self.path), total_checked, cells_checked))
                 # print('checked {} points total'.format(total_checked))
                 # print('checked {} cells of {}'.format(cells_checked,len(self.path)))
@@ -316,7 +323,8 @@ class hopper:
 
     def write(self, filename):
         data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds,
-                'times':self.times,'rs':self.rs, 'wts':self.wts}
+                'times':self.times,'rs':self.rs, 'wts':self.wts,
+                'points_examined':self.points_examined, 'cells_examined':self.cells_examined}
         with open(filename, 'wb') as f:
             pickle.dump(data, f)
 
@@ -332,6 +340,10 @@ class hopper:
             self.rs = hdata['rs']
             if 'wts' in hdata:
                 self.wts = hdata['wts']
+            if 'points_examined' in hdata:
+                self.points_examined = hdata['points_examined']
+            if 'cells_examined' in hdata:
+                self.cells_examined = hdata['cells_examined']
 
     def __getitem__(self, key):
         #subsets path, and includes from the data only those indices nearest
