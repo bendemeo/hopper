@@ -173,6 +173,7 @@ class hopper:
                 #print('ind: {}'.format(next_ind))
                 cur_rad = -1*self.min_dists[0][0]
 
+                print(cur_rad)
                 #next_ind = heappop(self.min_dists)[1]
                 next_pt = self.data[next_ind,:].reshape((1,self.numFeatures))
 
@@ -185,11 +186,16 @@ class hopper:
                 new_heap = []
 
                 for j, tup in reversed(list(enumerate(self.min_dists))):
-                    cur_ind = tup[1]
-                    cur_pt = self.data[cur_ind,:].reshape((1,self.numFeatures))
+
                     cell_radius = -1*tup[0]
                     if cell_radius < (cur_rad / 2):
                         continue
+
+
+                    cur_ind = tup[1]
+
+                    cur_pt = self.data[cur_ind,:].reshape((1,self.numFeatures))
+
 
                     if self.distfunc(cur_pt, next_pt) > (2 * cur_rad):
                         #too far away; ignore all points in this cell
@@ -594,12 +600,13 @@ class treehopper(hopper):
         return(result)
 
     def write(self, filename):
-        if(self.vcells is None):
-            self.get_vcells()
-        if self.vdict is None:
-            self.get_vdict()
+        self.get_vcells()
+        self.get_vdict()
+        self.get_wts()
+
         data = {'path':self.path, 'vcells':self.vcells, 'path_inds':self.path_inds,
-                'vdict':self.vdict, 'times': self.times, 'rs': self.rs}
+                'vdict':self.vdict, 'times': self.times, 'rs': self.rs,
+                'wts':self.wts}
         with open(filename, 'wb') as f:
             pickle.dump(data, f)
 
