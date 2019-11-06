@@ -84,32 +84,21 @@ def PCATreePartition(data, max_partition_size=1000, inds=None):
 
 @total_ordering
 class point:
-    def __init__(self, coords, ind=None, alpha=float('inf'), r=float('inf')):
+    def __init__(self, coords, ind=None, r=float('inf')):
         self.ind = ind #index in full dataset
         self.coords = coords #representation
-        self.r = r
-        self.alpha = alpha
+        self.r = r #dist to nearest subsampled point
 
-    def __lt__(self, other): #Make it randomized?
-        # #prob = self.r / (self.r + other.r)
-        # if self.r == float('inf'):
-        #     return(True)
-        # roll = np.random.uniform(high=self.r+other.r)
-        #
-        # prob = 1/(1+np.exp(-1 * self.alpha * (self.r-other.r)))
-        # print(prob)
-        # return (roll < self.r)
-
+    def __lt__(self, other):
         return self.r > other.r #backwards, for min-heaping
 
 
 @total_ordering
 class vcell:
-    def __init__(self, rep, pts, metric=euclidean, alpha=0):
-        self.pts = pts
-        self.rep = rep #rep point
+    def __init__(self, rep, pts, metric=euclidean):
+        self.pts = pts #point objects in cell
+        self.rep = rep #point defining the cell
         self.metric = metric
-        self.alpha = alpha
 
         heapify(self.pts)
         if len(pts) > 0:
@@ -118,28 +107,17 @@ class vcell:
             self.r = 0
 
     def dist(self, other):
+        #distance to other vcell representative
         return(self.metric(self.rep.coords, other.rep.coords))
 
     def __lt__(self, other):
+        return self.pts[0] < other.pts[0]
 
-        prob = (1-self.alpha)*(self.pts[0]<other.pts[0])+ self.alpha*(len(self.pts)/(len(self.pts)+len(other.pts)))
-        roll = np.random.uniform()
-        print(prob)
-        return(roll < prob)
-
-        # pt1 = self.pts[0]
-        # pt2 = other.pts[0]
-        # prob = (len(self))/(len(self)+len(other))
-        #
-        #
-        # return self.pts[0] < other.pts[0]
-
-
-    def push(self,pt):
+    def push(self,pt): #add point to cell
         heappush(self.pts, pt)
         self.r = self.pts[0].r
 
-    def pop(self):
+    def pop(self): #remove from cell
         result = heappop(self.pts)
         if len(self.pts) > 0:
             self.r = self.pts[0].r
@@ -149,6 +127,8 @@ class vcell:
 
     def order(self): #set radii and heapify
         data = np.array([pt.coords for pt in self.pts])
+        #print(self.rep.coords.reshape((1,len(self.rep.coords))))
+        #print(data)
         dists = pairwise_distances(self.rep.coords.reshape((1,len(self.rep.coords))),
                                    data)[0,:]
         #print(dists[:10])
@@ -163,16 +143,14 @@ class vcell:
 
 @total_ordering
 class hopper:
-    def __init__(self, data, metric=euclidean, inds=None, start_r=float('inf'), alpha=0, root=None):
+    def __init__(self, data, metric=euclidean, inds=None, start_r=float('inf'), root=None):
 
         t0 = time()
         self.times = [] # store runtimes after each hop
         self.r = start_r #current Haus distance
         self.rs = [] # keep track of haus after each time point
 
-        self.alpha = alpha
-
-        if data is None:
+        if data is None:  #just a blank hopper, no data stored
             self.numObs = None
             self.numFeatures = None
         else:
@@ -197,19 +175,20 @@ class hopper:
         self.wts = None
 
         self.root = root
-        self.init_time = time()-t0
-        self.times.append(self.init_time)
+
         self.new = True # for Treehopper
         self.points_examined = []
         self.cells_examined = []
 
-        start_pts = [point(data[i,:],inds[i], alpha=self.alpha) for i in range(data.shape[0])]
-
-        start_cell = vcell(None, start_pts, metric=metric, alpha=self.alpha)
+        start_pts = [point(data[i,:],inds[i]) for i in range(data.shape[0])]
+        start_cell = vcell(None, start_pts, metric=metric)
 
         self.cell_heap = [start_cell] # blank-slate cell with all points
 
-    def hop(self, n_hops=1, store_vcells=True, alpha=0):
+        self.init_time = time()-t0
+        self.times.append(self.init_time)
+
+    def hop(self, n_hops=1, store_vcells=True):
         for _ in itertools.repeat(None, n_hops):
             t0 = time()
 
@@ -223,9 +202,6 @@ class hopper:
                 else:
                     first = self.root
 
-                #first_heap = []
-
-
                 cell.rep = cell.pts[first]
                 self.path.append(cell.pts[first].ind)
                 self.path_inds.append(self.inds[cell.pts[first].ind])
@@ -236,9 +212,9 @@ class hopper:
                 self.r = cell[0].r
                 self.r0 = cell[0].r
 
-                print(cell[0].r)
+                #print(cell[0].r)
 
-                print(self.cell_heap[0].r)
+                #print(self.cell_heap[0].r)
 
             else:
                 #print(self.min_dists[:5])
@@ -251,8 +227,8 @@ class hopper:
                 print('heap size {}'.format(len(self.cell_heap)))
 
                 #print(self.min_dists[0][2])
-                top_cell = self.cell_heap[0]
-                next_pt = top_cell.pop() #removes from cell
+                top_cell = self.cell_heap[0] #highest-radius cell
+                next_pt = top_cell.pop() #add furthest point
 
 
                 #prune empty cell
@@ -265,18 +241,21 @@ class hopper:
                 self.path.append(next_pt.ind)
                 self.path_inds.append(self.inds[next_pt.ind])
 
-                new_cell = vcell(rep=next_pt, pts=[], metric=self.distfunc, alpha=self.alpha)
+                #cell represented by new point
+                new_cell = vcell(rep=next_pt, pts=[], metric=self.distfunc)
+
 
                 to_delete = [] # for vcells that become empty
                 cell_rad = float('inf')
 
+                #iterate through cells, updating points
                 for i, cell in reversed(list(enumerate(self.cell_heap))):
                     #cell = self.cell_heap[i]
 
                     if cell.r <= (next_pt.r / 2.): #cell too small to change
                         continue
 
-                    if new_cell.dist(cell) > (2*cell.r): # cell too far away
+                    if new_cell.dist(cell) > (2*cell.r): # cell too far away to change
                         continue
 
                     cells_checked += 1
@@ -297,10 +276,12 @@ class hopper:
 
                     prev_dists = [x.r for x in check_pts]
                     check_coords = np.array([x.coords for x in check_pts])
-                    #print(check_coords)
+
+                    #check pairwise distances with potentially-changed points
                     new_dists = pairwise_distances(next_pt.coords.reshape(1,-1), check_coords)[0,:]
 
                     total_checked += len(check_pts)
+
                     new_dists = np.array(new_dists)
 
                     for j in range(len(check_pts)):
@@ -310,10 +291,10 @@ class hopper:
                             pt.r = new_dists[j]
                             new_cell.push(pt)
                         else:
+                            #cell doesn't change
                             cell.push(pt)
 
                     if len(cell.pts) > 0:
-                        #print([p.r for p in cell.pts])
                         cell.r = cell.pts[0].r #update to reflect lost points
                     else:
                         print('removing empty cell')
@@ -342,223 +323,18 @@ class hopper:
             self.rs.append(self.r)
             self.times.append(self.times[-1]+time()-t0)
 
-            #
-            #         changed = list(itertools.compress(range(len(ischanged)),ischanged))
-            #         unchanged = list(itertools.compress(range(len(ischanged)),1-np.array(ischanged)))
-            #
-            #         #print(len(unchanged))
-            #         #print(len(cur_heap))
-            #         for i in changed:
-            #             new = new_dists[i]
-            #             max_cell_rad = max([max_cell_rad, new])
-            #             idx = check_list[i][2]
-            #             noise = check_list[i][3]
-            #
-            #             if new == 0: #don't push rep point onto its own heap
-            #                 print('not pushing')
-            #                 continue
-            #             heappush(new_heap, (-1*(new + noise), -1*new, idx, noise))
-            #             self.vcells[idx] = self.inds[next_ind]
-            #         for i in unchanged:
-            #             heappush(cur_heap, check_list[i])
-            #             max_cell_rad = max([max_cell_rad, prev_dists[i]])
-            #
-            #         if len(cur_heap) > 0:
-            #             #print(cur_heap[:4])
-            #             tup[0] = cur_heap[0][0] #update radius to reflect lost points
-            #         else: # heap is irrelevant; delete it
-            #             print('found irrelevant heap')
-            #             del self.min_dists[j]
-            #
-            #     for i, c in reversed(list(enumerate(self.cell_heap))):
-            #
-            #
-            #
-            #
-            #     # next_tup = heappop(self.min_dists[0][2])
-            #     # next_ind = next_tup[2]
-            #     #
-            #     # if len(self.min_dists[0][2]) == 0:
-            #     #     #cell now empty, remove from heap
-            #     #     print('empty cell!')
-            #     #     heappop(self.min_dists)
-            #     # #next_ind = self.min_dists[0][2][0][2]
-            #     # #print('ind: {}'.format(next_ind))
-            #     #
-            #     # cur_rad = -1*next_tup[1]
-            #     #
-            #     # #print(cur_rad)
-            #     #
-            #     # #next_ind = heappop(self.min_dists)[1]
-            #     # next_pt = self.data[next_ind,:].reshape((1,self.numFeatures))
-            #     #
-            #     # self.path.append(next_ind)
-            #     # self.path_inds.append(self.inds[next_ind])
-            #     #
-            #     # if store_vcells:
-            #     #     self.vcells[next_ind]=self.inds[next_ind]
-            #     #
-            #     # new_heap = []  #heap for newly added point
-            #     #
-            #     # max_cell_rad = 0
-            #     for j, tup in reversed(list(enumerate(self.min_dists))):
-            #
-            #         # print(tup[:2])
-            #         cell_radius = -1*tup[0]
-            #         #print(cell_radius)
-            #         # print(cur_rad / 2)
-            #         # print(cur_rad / 2.)
-            #         if cell_radius < (cur_rad / 2): #can skip
-            #              max_cell_rad = max([max_cell_rad, cell_radius])
-            #              continue
-            #
-            #
-            #         cur_ind = tup[1]
-            #
-            #         cur_pt = self.data[cur_ind,:].reshape((1,self.numFeatures))
-            #
-            #
-            #         if self.distfunc(cur_pt, next_pt) > (2 * cell_radius):
-            #             #too far away; ignore all points in this cell
-            #             max_cell_rad = max([max_cell_rad, cell_radius])
-            #             continue
-            #         cells_checked += 1
-            #         cur_heap = tup[2]
-            #         #print(len(cur_heap))
-            #
-            #
-            #         #find places where dists MAY be changed
-            #         check_inds = [] # what indices to check
-            #         check_list = [] # list of heap elements to check
-            #         prev_dists = [] # prior distances
-            #
-            #         r = float('Inf')
-            #         while r > cur_rad/2 and len(cur_heap) > 0:
-            #             curtuple = heappop(cur_heap)
-            #             check_inds.append(curtuple[2])
-            #             check_list.append(curtuple)
-            #             prev_dists.append(-1*curtuple[1])
-            #             r = -1*curtuple[1]
-            #
-            #         #heappush(cur_heap, curtuple)
-            #
-            #         #print('checking {} points out of {}'.format(len(check_list), len(cur_heap)+len(check_list)))
-            #
-            #         #print(check_inds)
-            #
-            #         if len(check_inds) == 0: #nothing to do here; put stuff back
-            #             continue
-            #
-            #         new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
-            #
-            #
-            #         #print('{} of {}'.format(len(check_list), len(check_list)+len(cur_heap)))
-            #         total_checked += len(check_list)
-            #         #print(total_checked)
-            #         new_dists = np.array(new_dists)
-            #
-            #         ischanged = (new_dists < prev_dists)
-            #         changed = list(itertools.compress(range(len(ischanged)),ischanged))
-            #         unchanged = list(itertools.compress(range(len(ischanged)),1-np.array(ischanged)))
-            #
-            #         #print(len(unchanged))
-            #         #print(len(cur_heap))
-            #         for i in changed:
-            #             new = new_dists[i]
-            #             max_cell_rad = max([max_cell_rad, new])
-            #             idx = check_list[i][2]
-            #             noise = check_list[i][3]
-            #
-            #             if new == 0: #don't push rep point onto its own heap
-            #                 print('not pushing')
-            #                 continue
-            #             heappush(new_heap, (-1*(new + noise), -1*new, idx, noise))
-            #             self.vcells[idx] = self.inds[next_ind]
-            #         for i in unchanged:
-            #             heappush(cur_heap, check_list[i])
-            #             max_cell_rad = max([max_cell_rad, prev_dists[i]])
-            #
-            #         if len(cur_heap) > 0:
-            #             #print(cur_heap[:4])
-            #             tup[0] = cur_heap[0][0] #update radius to reflect lost points
-            #         else: # heap is irrelevant; delete it
-            #             print('found irrelevant heap')
-            #             del self.min_dists[j]
-            #
-            #
-            #     heapify(self.min_dists)
-            #
-            #     if len(new_heap) > 0:
-            #         heappush(self.min_dists, [new_heap[0][0],next_ind, new_heap])
-            #     else:
-            #         print('new heap empty')
-            #
-            #     self.cells_examined.append(cells_checked)
-            #     self.points_examined.append(total_checked)
-            #     print('sampled {}th point, checked {} points total, {} cells examined'.format(len(self.path), total_checked, cells_checked))
-            #     # print('checked {} points total'.format(total_checked))
-            #     # print('checked {} cells of {}'.format(cells_checked,len(self.path)))
-            #
-            #
-            #
-            #     # #find places where dists MAY be changed
-            #     # check_inds = [] # what indices to check
-            #     # check_list = [] # list of heap elements to check
-            #     # prev_dists = [] # prior distances
-            #     #
-            #     # r = float('inf')
-            #     #
-            #     # if len(self.min_dists) > 0:
-            #     #     while r > self.r/2 and len(self.min_dists) > 0:
-            #     #         curtuple = heappop(self.min_dists)
-            #     #         check_inds.append(curtuple[1])
-            #     #         check_list.append(curtuple)
-            #     #         prev_dists.append(-1*curtuple[0])
-            #     #         r = -1*curtuple[0]
-            #     #
-            #     #     heappush(self.min_dists, curtuple)
-            #     #
-            #     #     print('checking {} points'.format(len(check_list)))
-            #     #
-            #     #     #compute pairwise distances
-            #     #     new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
-            #     #     new_dists = np.array(new_dists)
-            #     #
-            #     #     #filter by changed vs. unchanged. Faster than looping
-            #     #     ischanged = (new_dists < prev_dists)
-            #     #     changed = list(itertools.compress(range(len(ischanged)),ischanged))
-            #     #     unchanged = list(itertools.compress(range(len(ischanged)),1-np.array(ischanged)))
-            #     #
-            #     #     for i in changed:
-            #     #         new = new_dists[i]
-            #     #         idx = check_list[i][1]
-            #     #         heappush(self.min_dists, (-1*new, idx))
-            #     #         self.vcells[idx] = self.inds[next_ind]
-            #     #     for i in unchanged:
-            #     #         heappush(self.min_dists, check_list[i])
-            #     # else:
-            #     #     print('hopper exhausted!')
-            #
-            #
-            # #store Hausdorff and time information
-            # if len(self.min_dists) < 1:
-            #     self.r = 0
-            # else:
-            #     #self.r = -1*self.min_dists[0][0]
-            #     self.r = max_cell_rad
-            # self.rs.append(self.r)
-            # self.times.append(self.times[-1]+time()-t0)
-            #
+
 
         return(self.path)
 
 
     def get_vcells(self):
-        result = [None]*self.numObs
+        result = list(range(self.numObs))
         for i, c in enumerate(list(self.cell_heap)):
-            result[c.rep.ind] = c.rep
+            result[c.rep.ind] = c.rep.ind
             for p in c.pts:
-                result[p.ind] = c.rep
+                result[p.ind] = c.rep.ind
+
 
         self.vcells = result
         return(result)
@@ -569,8 +345,13 @@ class hopper:
         self.wts = [counter[x] for x in self.path_inds]
 
     def get_vdict(self):
-        #compute dictionary from cell ids
+        if self.vcells is None:
+            self.get_vcells()
         result = {}
+        #compute dictionary from cell ids
+        # result = {}
+        # for i,c in enumerate(self.cell_heap):
+        #     result[c.rep.ind]=[p.ind for p in c.pts]
         for i,c in enumerate(self.vcells):
             if c not in result:
                 result[c] = [self.inds[i]]
@@ -592,6 +373,22 @@ class hopper:
         with open(filename, 'wb') as f:
             pickle.dump(data, f)
 
+    def make_cell_heap(self):
+        #generate cell heap from path & vcell info
+        #allows further hopping without storing everything
+
+        self.get_vdict()
+        result = []
+        for k in list(self.vdict.keys()):
+            pts = [point(self.data[x,:],x) for x in self.vdict[k]]
+            rep = point(self.data[k,:], k)
+
+            cell = vcell(rep,pts,metric=self.distfunc)
+            cell.order()
+            heappush(result, cell)
+        self.cellheap = result
+        return(result)
+
     def read(self, filename):
         '''load hopData file and store into its values'''
         with open(filename, 'rb') as f:
@@ -608,6 +405,7 @@ class hopper:
                 self.points_examined = hdata['points_examined']
             if 'cells_examined' in hdata:
                 self.cells_examined = hdata['cells_examined']
+
 
     def __getitem__(self, key):
         #subsets path, and includes from the data only those indices nearest
@@ -846,7 +644,7 @@ class treehopper(hopper):
         return(result)
 
     def get_vcells(self):
-        result = [0]*self.numObs
+        result = list(range(self.numObs))
         d = self.get_vdict()
         for k in d.keys():
             for v in d[k]:
