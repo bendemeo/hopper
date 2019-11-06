@@ -387,7 +387,7 @@ class hopper:
             cell = vcell(rep,pts,metric=self.distfunc)
             cell.order()
             heappush(result, cell)
-        self.cellheap = result
+        self.cell_heap = result
         return(result)
 
     def read(self, filename):
