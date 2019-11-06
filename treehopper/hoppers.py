@@ -302,6 +302,7 @@ class hopper:
 
                 heapify(self.cell_heap) #to correct for lost values
 
+
                 if len(new_cell.pts) > 0:
                     new_cell.r = new_cell.pts[0].r
                     heappush(self.cell_heap, new_cell)
