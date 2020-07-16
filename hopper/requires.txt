@@ -1,0 +1,6 @@
+scanpy==1.4.6
+scipy==1.4.1
+matplotlib==3.2.1
+numpy==1.18.1
+fbpca==1.0
+scikit_learn==0.23.1
