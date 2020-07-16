@@ -2,6 +2,21 @@
 
 Hopper implements the greedy k-centers algorithm, iteratively generating a farthest-first traversal of the input data. The resulting subset realizes a 2-approximation to the optimal Hausdorff distance between the subset and the full dataset. See the full pre-print here: https://www.biorxiv.org/content/10.1101/835033v1
 
+## Installation
+Hopper is pip installable from a cloned git repo. First `git clone` this repository.
+
+Then, move into the cloned hopper directory. 
+```bash
+cd hopper/
+```
+
+Finally, pip install from the current directory.
+```bash 
+pip install .
+```
+
+You should now be able to `import hopper` in Python from anywhere.
+
 
 ## Usage
 To sketch a dataset, import the hopper class, and first pass the dataset into the Hopper constructor: 
