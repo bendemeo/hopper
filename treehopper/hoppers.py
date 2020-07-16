@@ -84,7 +84,8 @@ def PCATreePartition(data, max_partition_size=1000, inds=None):
 
 @total_ordering
 class hopper:
-    def __init__(self, data, metric=euclidean, inds=None, start_r=float('inf'), root=None):
+    def __init__(self, data, metric=euclidean, inds=None,
+                 start_r=float('inf'), root=None, verbose=True):
 
         t0 = time()
         self.times = [] # store runtimes after each hop
@@ -120,6 +121,8 @@ class hopper:
         self.times.append(self.init_time)
         self.new = True # for Treehopper
 
+        self.verbose = verbose
+
     def hop(self, n_hops=1, store_vcells=True):
         '''generate exact far traversal'''
 
@@ -128,7 +131,9 @@ class hopper:
 
         for _ in itertools.repeat(None, n_hops):
             t0 = time()
-            print('beginning traversal! {} items to traverse'.format(self.numObs))
+            if self.verbose:
+                print('beginning traversal! {} items to traverse'
+                      .format(self.numObs))
 
             if len(self.path) == 0:
                 #set starting point, initialize dist heap
@@ -154,7 +159,8 @@ class hopper:
 
             else:
                 if len(self.min_dists) < 1:
-                    print('hopper exhausted!')
+                    if self.verbose:
+                        print('hopper exhausted!')
                     break
 
                 next_ind = heappop(self.min_dists)[1]
@@ -184,7 +190,8 @@ class hopper:
 
                     heappush(self.min_dists, curtuple)
 
-                    print('checking {} points'.format(len(check_list)))
+                    if self.verbose:
+                        print('checking {} points'.format(len(check_list)))
 
                     #compute pairwise distances
                     new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
@@ -203,7 +210,8 @@ class hopper:
                     for i in unchanged:
                         heappush(self.min_dists, check_list[i])
                 else:
-                    print('hopper exhausted!')
+                    if self.verbose:
+                        print('hopper exhausted!')
 
 
             #store Hausdorff and time information
@@ -382,7 +390,8 @@ class treehopper(hopper):
         if partition is not None:
             if callable(partition):
                 '''use partitioner'''
-                print('Pre-partitioning...')
+                if self.verbose:
+                    print('Pre-partitioning...')
                 P = partition(data, max_partition_size, inds)
             else:
                 P = partition
@@ -393,7 +402,9 @@ class treehopper(hopper):
                 # self.path.append(next)
                 # self.path_inds.append(inds[next])
                 heappush(self.hheap, h)
-            print('Pre-partitioning done, added {} points'.format(len(self.path)))
+            if self.verbose:
+                print('Pre-partitioning done, added {} points'
+                      .format(len(self.path)))
 
         self.init_time = time()-t0
         self.times = [self.init_time]
