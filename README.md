@@ -6,9 +6,9 @@ Hopper implements the greedy k-centers algorithm, iteratively generating a farth
 ## Usage
 To sketch a dataset, import the hopper class, and first pass the dataset into the Hopper constructor: 
 ```
-from hoppers import hopper # class is defined in treehoppers/hoppers.py
+import hopper 
 
-h = hopper(X) # X is the input data, with one row per observation and one column per feature
+h = hopper.hopper(X) # X is the input data, with one row per observation and one column per feature
 ```
 
 The `hop()` method adds a point to the sketch, and returns the entire sketch generated thus far. To produce a sketch of size _k_=1000, and use it to subset the data, you can run
@@ -29,7 +29,8 @@ Treehopper objects accept arbitrary partitions, which are passed either as expli
 
 Here is an example script:
 ```
-from hoppers import hopper, treehopper, PCATreePartition
+import hopper
+
 
 #Load some dataset X here
 
