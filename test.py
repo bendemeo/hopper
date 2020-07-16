@@ -16,7 +16,7 @@ print(h.vcells)
 # plt.show()
 rgauss = sc.AnnData(rgauss)
 
-smaller = hopper.compress(rgauss, h)
+smaller = hopper.compress(h, rgauss)
 print(smaller)
 print(smaller.obs)
 plt.scatter(smaller.X[:,0],smaller.X[:,1])

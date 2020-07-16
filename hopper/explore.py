@@ -5,7 +5,7 @@ from collections import Counter
 
 
 
-def compress(data, h):
+def compress(h, data):
     path = h.path_inds
     result = data[path,:]
     return(result)
