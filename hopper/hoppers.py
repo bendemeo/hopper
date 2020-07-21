@@ -120,8 +120,12 @@ class hopper:
         self.times.append(self.init_time)
         self.new = True # for Treehopper
 
-    def hop(self, n_hops=1, store_vcells=True):
-        '''generate exact far traversal'''
+    def hop(self, n_hops=1, store_vcells=True, random_state=0):
+        '''Generate an informative subsample of data. 
+            Parameters: 
+                random_state (float): Random seed to generate sample
+                    from. Default: 0
+        '''
 
         if self.data is None: #only stores path info
             raise Exception('no data stored in this hopper!')
@@ -131,7 +135,8 @@ class hopper:
             print('beginning traversal! {} items to traverse'.format(self.numObs))
 
             if len(self.path) == 0:
-                #set starting point, initialize dist heap
+                # set starting point, initialize dist heap
+                np.random.seed(random_state)
                 if self.root is None:
                     first = np.random.choice(list(range(self.numObs)))
                 else:
