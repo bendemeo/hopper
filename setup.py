@@ -20,7 +20,7 @@ setup(
   ],
   python_requires=">=3.6",
   install_requires=[
-    "scanpy==1.4.6",
+    "scanpy>=1.4.6",
     "scipy==1.4.1",
     "matplotlib==3.2.1",
     "numpy==1.18.1",
