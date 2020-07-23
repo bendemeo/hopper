@@ -1,0 +1,18 @@
+Metadata-Version: 2.1
+Name: hopper
+Version: 0.0.1
+Summary: Hopper is a tool for sampling highly-informative cells from single-cell datasets
+Home-page: https://github.com/bendemeo/hopper
+Author: Benjamin Demeo
+Author-email: bdemeo@mit.edu
+License: MIT
+Description: UNKNOWN
+Keywords: hopper treehopper single-cell transcriptome transcriptomics
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
