@@ -120,7 +120,7 @@ class hopper:
         self.times.append(self.init_time)
         self.new = True # for Treehopper
 
-    def hop(self, n_hops=1, store_vcells=True, random_state=0):
+    def hop(self, n_hops=1, store_vcells=True, random_state=0, verbose=False):
         '''Generate an informative subsample of data. 
             Parameters: 
                 random_state (float): Random seed to generate sample
@@ -132,7 +132,8 @@ class hopper:
 
         for _ in itertools.repeat(None, n_hops):
             t0 = time()
-            print('beginning traversal! {} items to traverse'.format(self.numObs))
+            if verbose:
+                print('beginning traversal! {} items to traverse'.format(self.numObs))
 
             if len(self.path) == 0:
                 # set starting point, initialize dist heap
@@ -159,7 +160,8 @@ class hopper:
 
             else:
                 if len(self.min_dists) < 1:
-                    print('hopper exhausted!')
+                    if verbose:
+                        print('hopper exhausted!')
                     break
 
                 next_ind = heappop(self.min_dists)[1]
@@ -189,7 +191,8 @@ class hopper:
 
                     heappush(self.min_dists, curtuple)
 
-                    print('checking {} points'.format(len(check_list)))
+                    if verbose: 
+                        print('checking {} points'.format(len(check_list)))
 
                     #compute pairwise distances
                     new_dists = pairwise_distances(np.array(next_pt), self.data[check_inds,:])[0,:]
@@ -208,7 +211,8 @@ class hopper:
                     for i in unchanged:
                         heappush(self.min_dists, check_list[i])
                 else:
-                    print('hopper exhausted!')
+                    if verbose:
+                        print('hopper exhausted!')
 
 
             #store Hausdorff and time information
@@ -403,17 +407,19 @@ class treehopper(hopper):
         self.init_time = time()-t0
         self.times = [self.init_time]
 
-    def hop(self, n_hops=1, store_vcells=True):
+    def hop(self, n_hops=1, store_vcells=True, verbose=False):
         for _ in itertools.repeat(None, n_hops):
             t0 = time()
             print(len(self.path))
             if len(self.hheap) == 0: #start heaping
-                print('heap starting')
+                if verbose:
+                    print('heap starting')
                 heappush(self.hheap, hopper(self.data,self.distfunc, range(self.numObs)))
 
             h = heappop(self.hheap)
-            print('hopping with {} points'.format(h.numObs))
-            print('radius {}'.format(h.r))
+            if verbose:
+                print('hopping with {} points'.format(h.numObs))
+                print('radius {}'.format(h.r))
 
 
             if h.new: #first hop in this partition
@@ -425,7 +431,8 @@ class treehopper(hopper):
                 self.rs.append(self.r)
                 heappush(self.hheap, h)
                 self.times.append(self.times[-1]+time()-t0)
-                print('continuing')
+                if verbose:
+                    print('continuing')
                 continue
 
             # if len(h.path) == 1: #first in a partition; add first two points
@@ -456,7 +463,8 @@ class treehopper(hopper):
                     heappush(self.hheap,h)
 
                 else:
-                    print('splitting')
+                    if verbose:
+                        print('splitting')
                     #split into sub-hoppers
                     h.get_vdict()
                     for vcell in h.vdict.keys():
@@ -483,7 +491,8 @@ class treehopper(hopper):
                         if len(newhopper.min_dists) > 0: #make sure not exhausted
                             heappush(self.hheap,newhopper)
             else:
-                print('hopper exhausted!')
+                if verbose:
+                    print('hopper exhausted!')
 
             self.times.append(self.times[-1]+time()-t0)
 
