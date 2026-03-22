@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "treehopper"
+version = "0.2.0"
+description = "Structure-preserving subsampling via greedy k-centers (farthest-first traversal)"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "Brian DeMeo" },
+]
+keywords = ["subsampling", "k-centers", "farthest-first-traversal", "bioinformatics", "data-sketching"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "fbpca",
+]
+
+[project.optional-dependencies]
+viz = ["scanpy", "matplotlib"]
+dev = ["pytest", "ruff"]
+
+[project.urls]
+Homepage = "https://github.com/bdemeo/hopper"
+Paper = "https://www.biorxiv.org/content/10.1101/835033v1"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
