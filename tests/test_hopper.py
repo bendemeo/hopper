@@ -82,6 +82,16 @@ class TestHopper:
             h = hopper(None)
             h.hop()
 
+    def test_custom_metric(self, gaussian_data):
+        from scipy.spatial.distance import cosine
+        h = hopper(gaussian_data, metric=cosine, root=0)
+        h.hop(10)
+        assert len(h.path) == 10
+        # Verify radii are computed with cosine distance, not euclidean
+        h2 = hopper(gaussian_data, root=0)
+        h2.hop(10)
+        assert h.rs != h2.rs
+
 
 class TestTreehopper:
     def test_basic_hop(self, gaussian_data):

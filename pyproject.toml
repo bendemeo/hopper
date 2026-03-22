@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.8"
 authors = [
-    { name = "Brian DeMeo" },
+    { name = "Benjamin DeMeo" },
 ]
 keywords = ["subsampling", "k-centers", "farthest-first-traversal", "bioinformatics", "data-sketching"]
 classifiers = [
@@ -32,7 +32,7 @@ dev = ["pytest", "ruff"]
 
 [project.urls]
 Homepage = "https://github.com/bdemeo/hopper"
-Paper = "https://www.biorxiv.org/content/10.1101/835033v1"
+Paper = "https://doi.org/10.1093/bioinformatics/btaa408"
 
 [tool.ruff]
 line-length = 100

@@ -273,7 +273,8 @@ class hopper:
                     logger.debug(f"Checking {len(check_list)} points")
 
                     new_dists = pairwise_distances(
-                        np.array(next_pt), self.data[check_inds, :]
+                        np.array(next_pt), self.data[check_inds, :],
+                        metric=self.distfunc,
                     )[0, :]
                     new_dists = np.array(new_dists)
 

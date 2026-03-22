@@ -2,7 +2,7 @@
 
 Hopper implements the **greedy k-centers algorithm**, iteratively generating a farthest-first traversal of the input data. The resulting subset realizes a 2-approximation to the optimal Hausdorff distance between the subset and the full dataset.
 
-> B. DeMeo and B. Berger. "Hopper: Diverse sampling for biological datasets." [bioRxiv 835033](https://www.biorxiv.org/content/10.1101/835033v1) (2019).
+> DeMeo B, Berger B. Hopper: a mathematically optimal algorithm for sketching biological data. *Bioinformatics*. 2020 Jul 1;36(Suppl_1):i236-i241. [doi:10.1093/bioinformatics/btaa408](https://doi.org/10.1093/bioinformatics/btaa408)
 
 ## Installation
 
@@ -74,13 +74,16 @@ h_dist = haus(X, sketch)
 ## Citation
 
 ```bibtex
-@article{demeo2019hopper,
-  title={Hopper: Diverse sampling for biological datasets},
-  author={DeMeo, Brian and Berger, Bonnie},
-  journal={bioRxiv},
-  pages={835033},
-  year={2019},
-  publisher={Cold Spring Harbor Laboratory}
+@article{demeo2020hopper,
+  title={Hopper: a mathematically optimal algorithm for sketching biological data},
+  author={DeMeo, Benjamin and Berger, Bonnie},
+  journal={Bioinformatics},
+  volume={36},
+  number={Suppl\_1},
+  pages={i236--i241},
+  year={2020},
+  doi={10.1093/bioinformatics/btaa408},
+  pmid={32657375}
 }
 ```
 

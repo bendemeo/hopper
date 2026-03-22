@@ -17,6 +17,7 @@
 
 ### Fixed
 - Bug in `treehopper.get_wts()` referencing class instead of instance
+- Custom distance metrics not applied during distance updates in `hopper.hop()` ([#3](https://github.com/bendemeo/hopper/issues/3))
 
 ### Removed
 - Stale notebook with embedded outputs (replaced by `examples/`)
